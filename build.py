@@ -12,8 +12,8 @@ ROOT = Path(__file__).resolve().parent
 DIST = ROOT / "dist"
 
 PAGES = {
-    "index": dict(title="CoSE — SciSpinner Max two-axis clinostat",
-                  description="Collaborative Science Environment builds the SciSpinner Max, a two-axis clinostat for simulated-microgravity research. Designed and built in Madison, Wisconsin.",
+    "index": dict(title="CoSE — research instruments for gravitational biology",
+                  description="Collaborative Science Environment designs and builds clinostats and time-lapse imaging instruments for gravitational biology. Madison, Wisconsin.",
                   current="home"),
     "scispinner-max": dict(title="SciSpinner Max — specifications and software",
                            description="Two independent axes, 167 mm sample chamber, onboard camera, lighting and sensors, measured time-averaged gravity. Full specifications for the SciSpinner Max clinostat.",
@@ -25,6 +25,8 @@ PAGES = {
 
 def page(name, meta, skeleton=True):
     body = (ROOT / "src" / f"{name}.body.html").read_text()
+    if "{MAP}" in body:
+        body = body.replace("{MAP}", (ROOT / "src" / "_map.svg").read_text())
     inner = f"{head(meta['title'], meta['description'])}\n{nav(meta['current'])}\n{body}\n{footer()}"
     if not skeleton:
         return inner

@@ -2,18 +2,86 @@
 <section class="hero">
   <div class="wrap">
     <div class="hero-copy">
-      <p class="eyebrow">Two-axis clinostat</p>
-      <h1>Simulated microgravity, on the bench.</h1>
-      <p class="lede">The SciSpinner Max rotates a sample about two independent axes so the time-averaged gravity vector tends toward zero. It fits inside a CO<sub>2</sub> incubator, measures what the sample experienced, and runs for weeks.</p>
+      <p class="eyebrow">Collaborative Science Environment</p>
+      <h1>Research instruments for gravitational biology.</h1>
+      <p class="lede">We design and build laboratory equipment for simulated microgravity and time-lapse plant science, from a workshop in Madison, Wisconsin. Every part, board and line of software is our own.</p>
       <div class="btn-row">
-        <a class="btn btn-primary" href="#contact">Request a quote</a>
-        <a class="btn btn-secondary" href="/scispinner-max">About the instrument</a>
+        <a class="btn btn-primary" href="#products">Our instruments</a>
+        <a class="btn btn-secondary" href="#contact">Request a quote</a>
       </div>
     </div>
     <figure class="drawing">
       <img src="/assets/full-assembly.png" alt="Line drawing of the SciSpinner Max: a rotating frame on two uprights holding the core sample chamber, with the touchscreen Control Module beside it" width="1600" height="1201">
-      <figcaption><span>SciSpinner Max with Control Module</span><span>465 &times; 450 &times; 475 mm</span></figcaption>
+      <figcaption><span>SciSpinner Max two-axis clinostat</span><span>Our flagship instrument</span></figcaption>
     </figure>
+  </div>
+</section>
+
+<section id="products">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Instruments</p>
+      <h2>Built to order, supported for life</h2>
+    </div>
+    <div class="products">
+      <a class="product" href="/scispinner-max">
+        <div class="product-art"><img src="/assets/core.png" alt="" width="1200" height="925"></div>
+        <div class="product-copy">
+          <span class="k">Two-axis clinostat</span>
+          <h3>SciSpinner Max</h3>
+          <p>Simulated microgravity with independent frame and core axes, an onboard camera, chamber lighting and environment sensors, and a motion sensor module that measures time-averaged gravity at the sample.</p>
+          <span class="more">Specifications and documents &rarr;</span>
+        </div>
+      </a>
+      <div class="product placeholder">
+        <div class="product-art"><span class="ph">Photo to come</span></div>
+        <div class="product-copy">
+          <span class="k">Single-axis clinostat</span>
+          <h3>SciSpinner Duo</h3>
+          <p>A simpler, smaller clinostat for teaching labs and single-axis experiments. Description, specifications and images to be added.</p>
+          <span class="more muted">Details coming soon</span>
+        </div>
+      </div>
+      <div class="product placeholder">
+        <div class="product-art"><span class="ph">Photo to come</span></div>
+        <div class="product-copy">
+          <span class="k">Time-lapse imaging</span>
+          <h3>FlashLapse</h3>
+          <p>Research-grade time-lapse imaging for plant growth and classroom experiments. Description, specifications and images to be added.</p>
+          <span class="more muted">Details coming soon</span>
+        </div>
+      </div>
+      <div class="product placeholder">
+        <div class="product-art"><span class="ph">Photo to come</span></div>
+        <div class="product-copy">
+          <span class="k">Custom instruments</span>
+          <h3>Built for your experiment</h3>
+          <p>Open-frame clinostats for incubators, custom sample fixtures and instrument variants designed with the lab that will use them. Examples to be added.</p>
+          <span class="more muted">Ask us about a custom build</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<section id="where">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Where they run</p>
+      <h2>Instruments in laboratories on three continents</h2>
+      <p class="lede">Each dot is a laboratory running a CoSE instrument. Hover or tap a dot for the institution.</p>
+    </div>
+    <div class="map-wrap">
+      {MAP}
+      <div class="map-tip" id="map-tip" role="status" aria-live="polite" hidden></div>
+    </div>
+    <div class="map-figures">
+      <div class="figure"><span class="val">12</span><span class="lab">laboratories</span></div>
+      <div class="figure"><span class="val">25<small>+</small></span><span class="lab">instruments delivered</span></div>
+      <div class="figure"><span class="val">2</span><span class="lab">countries</span></div>
+      <div class="figure"><span class="val">2019</span><span class="lab">first unit shipped</span></div>
+    </div>
   </div>
 </section>
 
@@ -21,12 +89,12 @@
   <div class="wrap">
     <div class="grid-2">
       <div>
-        <p class="eyebrow">Who uses it</p>
-        <h2>Gravitational biology labs, on Earth</h2>
+        <p class="eyebrow">Who we work with</p>
+        <h2>University and government labs, on three continents</h2>
       </div>
       <div style="display:grid;gap:1.1rem">
-        <p>SciSpinner clinostats run in university and government laboratories across the United States, and are now delivered to research institutes in India and Brazil. They are used for cell and tissue culture, plant gravitropism, small-organism models and ground controls for spaceflight experiments.</p>
-        <p>Collaborative Science Environment Inc. is a Wisconsin benefit corporation founded in Madison in 2018. We design and build every part of the instrument ourselves. <a href="/founders">About the company &rarr;</a></p>
+        <p>Our clinostats run in university and government laboratories across the United States and at space-research institutes in India, with further deliveries under way. They are used for cell and tissue culture, plant gravitropism, small-organism models and ground controls for spaceflight experiments.</p>
+        <p>Collaborative Science Environment Inc. is a Wisconsin benefit corporation founded in 2018. Our control software is open source under the GPL, customers receive the CAD for sample fixtures, and every instrument ships with the same documentation our engineers use. <a href="/founders">About the company &rarr;</a></p>
       </div>
     </div>
   </div>
@@ -49,3 +117,26 @@
   </div>
 </section>
 </main>
+<script>
+(function(){
+  var wrap=document.querySelector('.map-wrap'), tip=document.getElementById('map-tip');
+  if(!wrap||!tip) return;
+  var dots=wrap.querySelectorAll('circle[data-label]');
+  function show(c){
+    var r=c.getBoundingClientRect(), w=wrap.getBoundingClientRect();
+    tip.textContent=c.getAttribute('data-label');
+    tip.hidden=false;
+    tip.style.left=(r.left-w.left+r.width/2)+'px';
+    tip.style.top=(r.top-w.top-8)+'px';
+  }
+  function hide(){ tip.hidden=true; }
+  dots.forEach(function(c){
+    c.addEventListener('mouseenter',function(){show(c);});
+    c.addEventListener('mouseleave',hide);
+    c.addEventListener('focus',function(){show(c);});
+    c.addEventListener('blur',hide);
+    c.addEventListener('click',function(e){e.stopPropagation();show(c);});
+  });
+  document.addEventListener('click',hide);
+})();
+</script>

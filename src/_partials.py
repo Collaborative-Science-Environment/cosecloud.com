@@ -16,9 +16,9 @@ def head(title, description, current=""):
 <style>.brand .wm{{fill:var(--teal)}}</style>"""
 
 NAV_ITEMS = [
-    ("/scispinner-max", "SciSpinner Max", "product"),
-    ("/scispinner-max#downloads", "Documents", "documents"),
+    ("/#products", "Instruments", "products"),
     ("/founders", "About", "founders"),
+    ("/#contact", "Contact", "contact"),
 ]
 
 def nav(current=""):
@@ -45,9 +45,11 @@ def footer():
       <p style="margin-top:1rem;max-width:34ch">Collaborative Science Environment Inc.<br>A Wisconsin benefit corporation building research instruments for gravitational biology.</p>
     </div>
     <div>
-      <h4>Product</h4>
+      <h4>Instruments</h4>
       <ul>
         <li><a href="/scispinner-max">SciSpinner Max</a></li>
+        <li><a href="/#products">SciSpinner Duo</a></li>
+        <li><a href="/#products">FlashLapse</a></li>
         <li><a href="/scispinner-max#downloads">Datasheet &amp; manuals</a></li>
         <li><a href="/founders">About CoSE</a></li>
       </ul>
