@@ -39,6 +39,7 @@ def main():
         shutil.rmtree(DIST)
     DIST.mkdir()
     shutil.copy(ROOT / "style.css", DIST / "style.css")
+    shutil.copy(ROOT / "favicon.ico", DIST / "favicon.ico")
     shutil.copytree(ROOT / "assets", DIST / "assets", ignore=shutil.ignore_patterns("*.txt", "logo.svg", "mark.svg"))
     (DIST / "_headers").write_text("/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n")
     (DIST / "_redirects").write_text(
