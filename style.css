@@ -149,6 +149,10 @@ section + section { border-top: 1px solid var(--line); }
 .drawing figcaption { font-family: var(--mono); font-size: .74rem; color: var(--muted); letter-spacing: .04em; margin-top: .6rem; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
 @media (max-width: 820px) { .hero .wrap { grid-template-columns: 1fr; } .drawing { order: -1; max-width: 520px; } }
 
+.story-photo { margin: 1.5rem 0 0; max-width: 420px; }
+.story-photo img { width: 100%; height: auto; display: block; border-radius: var(--radius); border: 1px solid var(--line); }
+.story-photo figcaption { font-family: var(--mono); font-size: .74rem; color: var(--muted); letter-spacing: .04em; margin-top: .6rem; }
+
 /* ---- key figures strip ---- */
 .figures { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: var(--surface); padding-block: 0; }
 .figures .wrap { display: grid; grid-template-columns: repeat(6, 1fr); }

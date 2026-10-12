@@ -55,7 +55,6 @@ def footer():
         <li><a href="/scispinner-max">SciSpinner Max</a></li>
         <li><a href="/#products">SciSpinner Duo</a></li>
         <li><a href="/#products">FlashLapse</a></li>
-        <li><a href="/scispinner-max#downloads">Datasheet &amp; manuals</a></li>
         <li><a href="/founders">About CoSE</a></li>
       </ul>
     </div>
@@ -64,6 +63,8 @@ def footer():
       <ul>
         <li><span class="mono" style="user-select:all">info@cosecloud.com</span></li>
         <li>56 Corry Street<br>Madison, Wisconsin 53704<br>United States</li>
+        <li style="margin-top:.75rem">India:<br><a href="https://www.digilogsys.in" rel="noopener">Digilog Technologies Pvt Ltd</a>, Bangalore<br><span class="mono" style="user-select:all">sharukh@digilogsys.in</span></li>
+        <li style="margin-top:.75rem">Greater China:<br><a href="https://www.zealquest.com" rel="noopener">Zealquest Scientific Technology Co., Ltd</a>, Shanghai<br><span class="mono" style="user-select:all">derek.gu@zealquest.com</span></li>
       </ul>
     </div>
     <div class="fine">
