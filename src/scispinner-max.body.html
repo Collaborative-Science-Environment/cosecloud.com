@@ -7,6 +7,7 @@
       <p class="lede">Independent frame and core axes, a 167 mm sample chamber with camera, lighting and environment sensors, and a detachable motion sensor module that reports the time-averaged gravity at the sample position.</p>
       <div class="btn-row">
         <a class="btn btn-primary" href="/#contact">Request a quote</a>
+        <a class="btn btn-secondary" href="/downloads/SciSpinner_Max_Datasheet_2026-10.pdf">Datasheet (PDF)</a>
       </div>
     </div>
     <figure class="drawing">
@@ -88,15 +89,35 @@
       <div>
         <p class="eyebrow">Documents</p>
         <h2>Datasheet, manuals and software</h2>
-        <p class="lede" style="margin-top:1rem">Full specifications are in the datasheet, available on request. Every instrument ships with the three manuals; software updates are free for the life of the instrument and install from a USB drive.</p>
+        <p class="lede" style="margin-top:1rem">Full specifications are in the datasheet. Every instrument ships with the three manuals; software updates are free for the life of the instrument and install from a USB drive.</p>
       </div>
       <ul class="list-plain" style="align-self:center">
-        <li>SciSpinner Max datasheet</li>
+        <li><a href="/downloads/SciSpinner_Max_Datasheet_2026-10.pdf">SciSpinner Max datasheet</a> <span class="muted mono" style="font-size:.85em">PDF, 2 pages, 0.8 MB</span></li>
         <li>Technical Reference</li>
         <li>Web Interface User Guide</li>
         <li>Assembly Instructions</li>
         <li>Software update packages and Update Guide</li>
-        <li>Documents on request: <span class="mono" style="user-select:all;color:var(--ink)">info@cosecloud.com</span></li>
+        <li>Manuals and software updates on request: <span class="mono" style="user-select:all;color:var(--ink)">info@cosecloud.com</span></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section id="tools">
+  <div class="wrap">
+    <div class="grid-2">
+      <div>
+        <p class="eyebrow">Tools</p>
+        <h2>Analyse a run in your browser</h2>
+        <p class="lede" style="margin-top:1rem">Drop a run&rsquo;s <span class="mono">imu.csv</span> on the g-level analysis page and get the sensor&rsquo;s zero-g offset, the offset-corrected time-averaged &lang;g&rang; over 15-minute and 1-hour windows, sphere coverage and a comparison with the kinematic model. Everything runs on your computer; nothing is uploaded.</p>
+        <p style="margin-top:1.25rem"><a class="btn btn-primary" href="/tools/g-level-analysis">Open the analysis tool</a></p>
+      </div>
+      <ul class="list-plain" style="align-self:center">
+        <li>Zero-g offset by sphere fit, with per-axis scale</li>
+        <li>&lang;g&rang; raw, offset-corrected and modelled (Clary et&nbsp;al. 2022)</li>
+        <li>Coverage of the unit sphere over the run</li>
+        <li>PDF report, JSON results and corrected per-second CSV</li>
+        <li>Open source, GPL-3.0; the same page ships in every run folder</li>
       </ul>
     </div>
   </div>

@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SciSpinner g-level analysis</title>
+<meta name="description" content="Offline analysis of SciSpinner Max motion-sensor logs: zero-g offset by sphere fit, offset-corrected time-averaged gravity, sphere coverage. Runs entirely in your browser; no data leaves this computer.">
+<style>
+:root{
+  --bg:#ffffff; --surface:#f6f7f8; --border:#e2e5e8; --ink:#1d2126; --ink2:#4b5560; --muted:#7a8590;
+  --raw:#C2571A; --cor:#0F7F9F; --model:#6B5CA5; --ok:#2e7d4f; --warn:#b26a00; --grid:#e9ecef; --axis:#9aa3ab;
+  --ref:#9aa3ab;
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg:#14171a; --surface:#1d2126; --border:#2c3238; --ink:#e8ebee; --ink2:#b8c0c8; --muted:#8a939c;
+  --raw:#e0803f; --cor:#3aa6c6; --model:#9a8bd6; --ok:#5fbf85; --warn:#e0a040; --grid:#262c32; --axis:#6b757e; --ref:#6b757e;
+}}
+:root[data-theme="dark"]{
+  --bg:#14171a; --surface:#1d2126; --border:#2c3238; --ink:#e8ebee; --ink2:#b8c0c8; --muted:#8a939c;
+  --raw:#e0803f; --cor:#3aa6c6; --model:#9a8bd6; --ok:#5fbf85; --warn:#e0a040; --grid:#262c32; --axis:#6b757e; --ref:#6b757e;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+main{max-width:1080px;margin:0 auto;padding:28px 16px 56px}
+h1{font-size:22px;font-weight:600;margin:0 0 4px}
+h2{font-size:16px;font-weight:600;margin:28px 0 10px}
+p{margin:6px 0;color:var(--ink2)}
+.sub{color:var(--muted);font-size:13px}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+#drop{margin:18px 0;border:2px dashed var(--border);border-radius:10px;padding:26px 18px;text-align:center;background:var(--surface);cursor:pointer;transition:border-color .15s}
+#drop.over{border-color:var(--cor)}
+#drop strong{color:var(--ink)}
+#drop input{display:none}
+.row{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center}
+label.f{display:flex;align-items:center;gap:8px;color:var(--ink2);font-size:14px}
+label.f input{width:88px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+button{font:inherit;padding:7px 14px;border-radius:7px;border:1px solid var(--border);background:var(--surface);color:var(--ink);cursor:pointer}
+button.primary{background:var(--cor);border-color:var(--cor);color:#fff}
+button:disabled{opacity:.5;cursor:default}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:12px 0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.card .k{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.card .v{font-size:22px;font-weight:600;margin-top:2px}
+.card .s{font-size:13px;color:var(--ink2)}
+table{border-collapse:collapse;width:100%;font-size:14px;margin:8px 0}
+th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--border)}
+th{color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+td.n{text-align:right}th.n{text-align:right}
+.status{padding:10px 14px;border-radius:8px;background:var(--surface);border:1px solid var(--border);margin:10px 0;color:var(--ink2)}
+.status.ok{border-color:var(--ok)}.status.warn{border-color:var(--warn)}
+.fig{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;margin:12px 0}
+.fig h3{font-size:14px;font-weight:600;margin:0 0 2px}
+.fig .cap{font-size:13px;color:var(--muted);margin:0 0 8px}
+canvas{width:100%;height:auto;display:block}
+.legend{display:flex;gap:18px;font-size:13px;color:var(--ink2);margin:6px 0 0}
+.legend span::before{content:"";display:inline-block;width:14px;height:3px;border-radius:2px;margin-right:6px;vertical-align:middle}
+.legend .r::before{background:var(--raw)}.legend .c::before{background:var(--cor)}.legend .m::before{background:var(--model)}
+#tip{position:fixed;pointer-events:none;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:12px;color:var(--ink);display:none;box-shadow:0 2px 8px rgba(0,0,0,.12);z-index:5}
+.hidden{display:none}
+footer{margin-top:40px;font-size:12px;color:var(--muted);border-top:1px solid var(--border);padding-top:12px}
+details{margin:10px 0}summary{cursor:pointer;color:var(--ink2)}
+@media print{
+  body{background:#fff;color:#000}
+  #drop,.row.actions,#tip,details{display:none!important}
+  main{max-width:none;padding:0}
+  .fig,.card{break-inside:avoid;border-color:#ccc}
+}
+</style>
+</head>
+<body>
+<main>
+  <h1>SciSpinner Max — g-level analysis</h1>
+  <p class="sub">Zero-g offset by sphere fit · offset-corrected time-averaged ⟨g⟩ · sphere coverage. Everything runs in this browser; your files are not uploaded anywhere.</p>
+
+  <div id="drop">
+    <strong>Drop the run's files here</strong> (imu.csv, experiment.json, sensors.csv), or click to choose them.<br>
+    <span class="sub">Needs <span class="mono">imu.csv</span>. Optional: <span class="mono">experiment.json</span> (speeds), <span class="mono">sensors.csv</span> (temperature). Dropping the whole folder works where the browser allows it; its <span class="mono">timelapse/</span> frames are never read.</span>
+    <input type="file" id="fileIn2" multiple accept=".csv,.json">
+  </div>
+
+  <div class="row">
+    <label class="f">Frame rpm <input id="frameRpm" type="number" step="0.001" value="3.875"></label>
+    <label class="f">Core rpm <input id="coreRpm" type="number" step="0.001" value="1.5"></label>
+    <span class="sub">Used for the kinematic prediction (filled from experiment.json when present).</span>
+  </div>
+
+  <div id="status" class="status hidden"></div>
+
+  <section id="results" class="hidden">
+    <h2>Run</h2>
+    <div class="cards">
+      <div class="card"><div class="k">Samples</div><div class="v mono" id="rSamples">—</div><div class="s" id="rRate">—</div></div>
+      <div class="card"><div class="k">Duration</div><div class="v mono" id="rDur">—</div><div class="s" id="rSpeeds">—</div></div>
+      <div class="card"><div class="k">Core temperature</div><div class="v mono" id="rTemp">—</div><div class="s" id="rHum">—</div></div>
+      <div class="card"><div class="k">Sphere coverage</div><div class="v mono" id="rCov">—</div><div class="s" id="rCov15">—</div></div>
+    </div>
+
+    <h2>Sensor zero-g offset (sphere fit)</h2>
+    <div class="cards">
+      <div class="card"><div class="k">Offset vector</div><div class="v mono" id="rOff">—</div><div class="s">g, sensor axes (x, y, z)</div></div>
+      <div class="card"><div class="k">Offset magnitude</div><div class="v mono" id="rOffMag">—</div><div class="s" id="rOffNote">—</div></div>
+      <div class="card"><div class="k">Sphere radius</div><div class="v mono" id="rRad">—</div><div class="s" id="rScale">—</div></div>
+      <div class="card"><div class="k">Offset stability</div><div class="v mono" id="rStab">—</div><div class="s">spread of fitted centre across 30-min blocks</div></div>
+    </div>
+
+    <h2>Time-averaged ⟨g⟩</h2>
+    <p class="sub">Vector mean over the window, then magnitude (as the instrument computes it). Ranges are over all window positions after the first hour.</p>
+    <table>
+      <thead><tr><th>Window</th><th class="n">Raw (as displayed)</th><th class="n">Offset removed</th><th class="n">Kinematic model, same speeds</th></tr></thead>
+      <tbody id="gTable"></tbody>
+    </table>
+
+    <div class="fig">
+      <h3>Time-averaged ⟨g⟩ — raw vs offset-corrected</h3>
+      <p class="cap" id="gCap">15-minute and 1-hour trailing windows, log scale. Dashed line: 10⁻³ g.</p>
+      <canvas id="gChart" width="1040" height="380"></canvas>
+      <div class="legend"><span class="r">Raw sensor</span><span class="c">Offset removed</span><span class="m">Kinematic model</span></div>
+    </div>
+
+    <div class="fig">
+      <h3>Direction of gravity in the sample frame</h3>
+      <p class="cap" id="sCap">Orthographic views of the unit sphere; every point is one sample (offset-corrected).</p>
+      <canvas id="sChart" width="1040" height="520"></canvas>
+    </div>
+
+    <div class="row actions">
+      <button class="primary" id="btnPrint">Save report as PDF</button>
+      <button id="btnJson">Download results (JSON)</button>
+      <button id="btnCsv">Download corrected per-second data (CSV)</button>
+    </div>
+
+    <details><summary>Method</summary>
+      <p>Each raw sample is a<sub>meas</sub> = a<sub>true</sub> + b, where a<sub>true</sub> is gravity in the rotating sensor frame (|a<sub>true</sub>| = 1 g) and b is the accelerometer's fixed zero-g offset. During a run a<sub>true</sub> sweeps the unit sphere, so the raw samples lie on a sphere of radius ≈ 1 g centred at b. The centre is found by linear least squares (|a|² = 2 b·a + (r² − |b|²)); an axis-aligned ellipsoid fit gives per-axis scale factors. b is subtracted from every sample before averaging. ⟨g⟩ is the magnitude of the vector mean over one-second block means (identical to the instrument's calculation). The kinematic model is Clary et al. (2022) Eq. 1 evaluated at the run's speeds with no sensor. Coverage counts 288 equal-area cells (12 bands in sin(lat) × 24 in longitude) visited by the corrected, normalised samples.</p>
+    </details>
+  </section>
+
+  <div id="tip"></div>
+  <footer>SciSpinner Max g-level analysis v1.1 (2026-09) · Collaborative Science Environment Inc. · Reference implementation: <span class="mono">gbias_fit.py</span>. Open-source under GPL-3.0-or-later.</footer>
+</main>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const fmt = (v, d=4) => v == null ? '—' : v.toFixed(d);
+const SUP = { '0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹' };
+const fmtE = v => { if (v == null) return '—'; if (v >= 0.01) return v.toFixed(4);
+  const [m, e] = v.toExponential(2).split('e'); return m + ' × 10' + (e[0]==='-' ? '⁻' : '') + e.replace(/[-+]/,'').replace(/^0+(?=\d)/,'').split('').map(d => SUP[d]).join(''); };
+let R = null;                                  // last results
+const files = { imu:null, exp:null, sens:null };
+
+// ---------- file intake ----------
+const drop = $('drop');
+drop.addEventListener('click', e => { if (e.target.tagName !== 'INPUT') $('fileIn2').click(); });
+['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+// DROPS. Files are taken from the DataTransfer synchronously with getAsFile(), which works
+// everywhere — including a page opened FROM DISK (file://), which is how a run folder's own
+// copy of this page is opened. The FileSystem entry API (entry.file(), readEntries) is the
+// only way to read a dropped FOLDER, and Chrome refuses it on a file:// page (every call
+// fails with EncodingError; the handle API hangs). So: files always work; a folder works
+// when this page is served over http (the hosted copy) or in a browser that allows it, and
+// otherwise the message says to drop the folder's files instead.
+drop.addEventListener('drop', e => {
+  const dt = e.dataTransfer;
+  if (!dt) { status('Drop received but the browser attached no data (dataTransfer missing).', 'warn'); return; }
+  const files = [], dirs = [];
+  if (dt.items) for (let i = 0; i < dt.items.length; i++) {
+    const it = dt.items[i]; if (it.kind !== 'file') continue;
+    const en = it.webkitGetAsEntry ? it.webkitGetAsEntry() : null;
+    if (en && en.isDirectory) dirs.push(en);
+    else { const f = it.getAsFile(); if (f) files.push(f); }
+  }
+  if (!files.length && !dirs.length) files.push(...Array.from(dt.files || []).filter(f => f.size > 0 || f.type));
+  readDirs(dirs).then(({ list, unreadable }) => {
+    const all = files.concat(list);
+    if (all.length === 1 && /\.zip$/i.test(all[0].name)) { status('That is a .zip — please extract it first, then drop the folder (or its imu.csv).', 'warn'); return; }
+    if (!all.length && unreadable) { status('This browser cannot read a dropped folder from a page opened from disk. Open the folder and drop its files instead (imu.csv; optionally experiment.json and sensors.csv), or click here to choose them.', 'warn'); return; }
+    if (!all.length) { status('Nothing readable was dropped — try clicking to choose the files instead.', 'warn'); return; }
+    take(all);
+  });
+});
+// Dropped folders -> their OWN files (no recursion: a run's timelapse/ subfolder holds
+// thousands of frames and must never be read). unreadable = a folder the browser refused.
+async function readDirs(dirs) {
+  const list = []; let unreadable = false;
+  const readAll = reader => new Promise(res => { const acc = []; (function more() {
+    reader.readEntries(batch => { if (!batch.length) return res(acc); acc.push(...batch); more(); }, () => res(null)); })(); });
+  const toFile = en => new Promise(res => en.file(res, () => res(null)));
+  for (const en of dirs) {
+    const subs = await readAll(en.createReader());
+    if (subs === null) { unreadable = true; continue; }
+    for (const sub of subs) if (sub.isFile) { const f = await toFile(sub); if (f) list.push(f); else unreadable = true; }
+  }
+  return { list, unreadable };
+}
+// a drop that misses the zone must not navigate the page away
+['dragover','drop'].forEach(ev => window.addEventListener(ev, e => { if (!drop.contains(e.target)) e.preventDefault(); }));
+$('fileIn2').addEventListener('change', e => take([...e.target.files]));
+function take(list) {
+  files.imu = files.exp = files.sens = null;
+  for (const f of list) {
+    const n = f.name.toLowerCase();
+    if (n === 'imu.csv') files.imu = f;
+    else if (n === 'experiment.json') files.exp = f;
+    else if (n === 'sensors.csv') files.sens = f;
+    else if (n.endsWith('.csv') && !files.imu && /imu/.test(n)) files.imu = f;
+  }
+  if (!files.imu) { status('No imu.csv among the files given (' + list.map(f => f.name).slice(0, 8).join(', ') + (list.length > 8 ? ', …' : '') + ').', 'warn'); return; }
+  run();
+}
+function status(msg, cls) { const s = $('status'); s.className = 'status ' + (cls||''); s.textContent = msg; }
+
+// ---------- numerics ----------
+function solve(A, b) {                    // Gaussian elimination with partial pivoting; A n×n (array of rows), b n
+  const n = b.length, M = A.map((r,i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++) {
+    let p = c; for (let r = c+1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+    [M[c], M[p]] = [M[p], M[c]];
+    for (let r = 0; r < n; r++) if (r !== c) { const f = M[r][c] / M[c][c]; for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k]; }
+  }
+  return M.map((r,i) => r[n] / r[i]);
+}
+function sphereFit(ax, ay, az, i0, i1) {  // normal equations for [2x 2y 2z 1]·[cx cy cz k] = |a|^2
+  const S = Array.from({length:4}, () => [0,0,0,0]), v = [0,0,0,0];
+  for (let i = i0; i < i1; i++) {
+    const row = [2*ax[i], 2*ay[i], 2*az[i], 1], y = ax[i]*ax[i] + ay[i]*ay[i] + az[i]*az[i];
+    for (let r = 0; r < 4; r++) { v[r] += row[r]*y; for (let c = 0; c < 4; c++) S[r][c] += row[r]*row[c]; }
+  }
+  const s = solve(S, v), c = s.slice(0,3);
+  return { c, r: Math.sqrt(s[3] + c[0]*c[0] + c[1]*c[1] + c[2]*c[2]) };
+}
+function ellipsoidFit(ax, ay, az) {       // p1 x² + p2 y² + p3 z² + p4 x + p5 y + p6 z = 1
+  const S = Array.from({length:6}, () => new Array(6).fill(0)), v = new Array(6).fill(0);
+  for (let i = 0; i < ax.length; i++) {
+    const row = [ax[i]*ax[i], ay[i]*ay[i], az[i]*az[i], ax[i], ay[i], az[i]];
+    for (let r = 0; r < 6; r++) { v[r] += row[r]; for (let c = 0; c < 6; c++) S[r][c] += row[r]*row[c]; }
+  }
+  const p = solve(S, v), c = [-p[3]/(2*p[0]), -p[4]/(2*p[1]), -p[5]/(2*p[2])];
+  const k = 1 + p[0]*c[0]*c[0] + p[1]*c[1]*c[1] + p[2]*c[2]*c[2];
+  return { c, scale: [Math.sqrt(k/p[0]), Math.sqrt(k/p[1]), Math.sqrt(k/p[2])] };
+}
+function perSecond(ax, ay, az, sec, nsec) {          // mean per whole second, forward-filled
+  const sx = new Float64Array(nsec), sy = new Float64Array(nsec), sz = new Float64Array(nsec), n = new Int32Array(nsec);
+  for (let i = 0; i < ax.length; i++) { const s = sec[i]; sx[s] += ax[i]; sy[s] += ay[i]; sz[s] += az[i]; n[s]++; }
+  for (let s = 0; s < nsec; s++) {
+    if (n[s]) { sx[s] /= n[s]; sy[s] /= n[s]; sz[s] /= n[s]; }
+    else if (s) { sx[s] = sx[s-1]; sy[s] = sy[s-1]; sz[s] = sz[s-1]; }
+  }
+  return { sx, sy, sz };
+}
+function cums(s) { const c = new Float64Array(s.length+1); for (let i = 0; i < s.length; i++) c[i+1] = c[i] + s[i]; return c; }
+function trailing(P, w) {                             // |mean over trailing w seconds| for every second
+  const cx = cums(P.sx), cy = cums(P.sy), cz = cums(P.sz), n = P.sx.length, out = new Float64Array(n);
+  for (let i = 1; i <= n; i++) { const lo = Math.max(i-w, 0), m = i-lo;
+    const x = (cx[i]-cx[lo])/m, y = (cy[i]-cy[lo])/m, z = (cz[i]-cz[lo])/m; out[i-1] = Math.hypot(x,y,z); }
+  return out;
+}
+function winMag(P, t0, t1) { if (t1 > P.sx.length) return null; let x=0,y=0,z=0; for (let i=t0;i<t1;i++){x+=P.sx[i];y+=P.sy[i];z+=P.sz[i];} const m=t1-t0; return Math.hypot(x/m,y/m,z/m); }
+function rangeAfter(arr, from) { let lo=Infinity, hi=-Infinity; for (let i=from;i<arr.length;i++){ if(arr[i]<lo)lo=arr[i]; if(arr[i]>hi)hi=arr[i]; } return lo===Infinity?null:[lo,hi]; }
+function kinematic(frameRpm, coreRpm, nsec) {         // Clary 2022 Eq.1, per-second means at 20 Hz
+  const wo = frameRpm*2*Math.PI/60, wi = coreRpm*2*Math.PI/60, dt = 0.05, k = Math.round(1/dt);
+  const sx = new Float64Array(nsec), sy = new Float64Array(nsec), sz = new Float64Array(nsec);
+  for (let s = 0; s < nsec; s++) { let x=0,y=0,z=0;
+    for (let j = 0; j < k; j++) { const t = s + j*dt, so = Math.sin(wo*t); x += so*Math.cos(wi*t); y += so*Math.sin(wi*t); z += Math.cos(wo*t); }
+    sx[s]=x/k; sy[s]=y/k; sz[s]=z/k; }
+  return { sx, sy, sz };
+}
+
+// ---------- pipeline ----------
+/* run(): parse the dropped files into the intermediates; analyse(): the report from them. */
+async function run() {
+  status('Reading ' + files.imu.name + ' …');
+  $('results').classList.add('hidden');
+  await new Promise(r => setTimeout(r, 20));
+  try {
+    let exp = null, sens = null;
+    if (files.exp) { try { exp = JSON.parse(await files.exp.text()); } catch(e) {} }
+    if (files.sens) { try { sens = await files.sens.text(); } catch(e) {} }
+    if (exp && exp.motors) {                           // motors "1" = frame, "2" = core (SciSpinner Max)
+      const m1 = exp.motors['1'], m2 = exp.motors['2'];
+      if (m1 && m1.speed != null) $('frameRpm').value = m1.speed;
+      if (m2 && m2.speed != null) $('coreRpm').value = m2.speed;
+    }
+    const txt = await files.imu.text();
+    const lines = txt.split(/\r?\n/), head = lines[0].split(',');
+    const iT = head.indexOf('time'), iX = head.indexOf('ax_g'), iY = head.indexOf('ay_g'), iZ = head.indexOf('az_g');
+    if (iX < 0 || iY < 0 || iZ < 0) throw new Error('imu.csv header must contain ax_g, ay_g, az_g');
+    const N = lines.length - 1;
+    const ax = new Float64Array(N), ay = new Float64Array(N), az = new Float64Array(N), ts = new Float64Array(N);
+    let n = 0, t0 = null;
+    for (let i = 1; i < lines.length; i++) {
+      const L = lines[i]; if (!L) continue;
+      const f = L.split(',');
+      const x = +f[iX], y = +f[iY], z = +f[iZ]; if (!isFinite(x)||!isFinite(y)||!isFinite(z)) continue;
+      let t = iT >= 0 ? Date.parse(f[iT]) : NaN;
+      if (!isFinite(t)) t = n * 40;                     // fallback: assume 25 Hz
+      if (t0 === null) t0 = t;
+      ax[n]=x; ay[n]=y; az[n]=z; ts[n]=(t-t0)/1000; n++;
+    }
+    if (n < 100) throw new Error('Too few samples in imu.csv');
+    const A = { ax: ax.subarray(0,n), ay: ay.subarray(0,n), az: az.subarray(0,n), ts: ts.subarray(0,n) };
+    const dur = A.ts[n-1];
+    const sec = new Int32Array(n); for (let i=0;i<n;i++) sec[i] = Math.floor(A.ts[i]);
+    const nsec = sec[n-1] + 1;
+    const sph = sphereFit(A.ax, A.ay, A.az, 0, n);
+    const ell = ellipsoidFit(A.ax, A.ay, A.az);
+    const blocks = []; for (let b0 = 0; b0 + 900 < dur; b0 += 1800) {   // 30-min blocks (needs ≥15 min of data)
+      let i0 = 0; while (i0 < n && A.ts[i0] < b0) i0++; let i1 = i0; while (i1 < n && A.ts[i1] < b0+1800) i1++;
+      if (i1 - i0 > 1000) blocks.push(sphereFit(A.ax, A.ay, A.az, i0, i1).c); }
+    const rawMean = [0,0,0]; for (let i=0;i<n;i++){ rawMean[0]+=A.ax[i]; rawMean[1]+=A.ay[i]; rawMean[2]+=A.az[i]; } for (let k=0;k<3;k++) rawMean[k]/=n;
+    const counts = new Int32Array(288), counts15 = new Int32Array(288);
+    for (let i=0;i<n;i++){ const x=(A.ax[i]-sph.c[0])/ell.scale[0], y=(A.ay[i]-sph.c[1])/ell.scale[1], z=(A.az[i]-sph.c[2])/ell.scale[2]; const m=Math.hypot(x,y,z)||1;
+      const lat = Math.min(11, Math.max(0, Math.floor((z/m+1)/2*12))), lon = Math.min(23, Math.max(0, Math.floor((Math.atan2(y/m,x/m)+Math.PI)/(2*Math.PI)*24)));
+      const cidx = lat*24+lon; counts[cidx]++; if (A.ts[i] <= 900) counts15[cidx]++; }
+    let temp = null;
+    if (sens) { const rows = sens.split(/\r?\n/).filter(Boolean); const h = rows[0].split(','); const it = h.indexOf('temp_c'), ih = h.indexOf('humidity');
+      if (it >= 0 && rows.length > 2) { const a = rows[1].split(','), b = rows[rows.length-1].split(','); temp = { t0:+a[it], t1:+b[it], h0: ih>=0?+a[ih]:null, h1: ih>=0?+b[ih]:null }; } }
+    analyse({ file: files.imu.name, n, dur, nsec, Praw: perSecond(A.ax, A.ay, A.az, sec, nsec), sph, ell, blocks, rawMean,
+              counts, counts15, pts: { x: A.ax, y: A.ay, z: A.az }, temp });
+    status('Done: ' + n.toLocaleString() + ' samples analysed.', 'ok');
+  } catch (err) { status('Error: ' + err.message, 'warn'); console.error(err); }
+}
+
+function analyse(I) {
+  const { n, dur, nsec, sph, ell, rawMean } = I, Praw = I.Praw, rate = n/dur;
+  let stab = null; if (I.blocks.length >= 2) { stab = 0; for (const c of I.blocks) stab = Math.max(stab, Math.hypot(c[0]-sph.c[0], c[1]-sph.c[1], c[2]-sph.c[2])); }
+  // corrected per-second means = raw per-second means − offset (a mean is linear)
+  const Pcor = { sx: Praw.sx.map(v => v - sph.c[0]), sy: Praw.sy.map(v => v - sph.c[1]), sz: Praw.sz.map(v => v - sph.c[2]) };
+  const fr = +$('frameRpm').value, cr = +$('coreRpm').value;
+  const Pmod = kinematic(fr, cr, nsec);
+  const W = { '15 min': 900, '1 h': 3600 };
+  const series = {};
+  for (const [k,w] of Object.entries(W)) series[k] = { raw: trailing(Praw,w), cor: trailing(Pcor,w), mod: trailing(Pmod,w) };
+  const gRun = { raw: Math.hypot(...rawMean), cor: Math.hypot(rawMean[0]-sph.c[0], rawMean[1]-sph.c[1], rawMean[2]-sph.c[2]), mod: winMag(Pmod, 0, nsec) };
+  const cov = I.counts.reduce((a,v)=>a+(v>0),0)/288, cov15 = I.counts15.reduce((a,v)=>a+(v>0),0)/288;
+  const m = I.pts.x.length, cx = new Float64Array(m), cy = new Float64Array(m), cz = new Float64Array(m);
+  for (let i=0;i<m;i++){ cx[i]=I.pts.x[i]-sph.c[0]; cy[i]=I.pts.y[i]-sph.c[1]; cz[i]=I.pts.z[i]-sph.c[2]; }
+  R = { file: I.file, samples:n, duration_s:dur, rate_hz:rate, frame_rpm:fr, core_rpm:cr,
+        sphere_fit:{ offset_g: sph.c, offset_mag_g: Math.hypot(...sph.c), radius_g: sph.r },
+        ellipsoid_fit:{ offset_g: ell.c, scale: ell.scale }, offset_stability_g: stab, raw_mean_vector_g: rawMean,
+        g_run: gRun, g_end_of_run:{}, g_range_after_first_hour:{}, clary_windows_1000s:{},
+        sphere_coverage_fraction:{ full_run: cov, first_15_min: cov15, cells: 288 }, temperature_c: I.temp,
+        _series: series, _P: { raw:Praw, cor:Pcor }, _pts: { cx, cy, cz, n: m, ell } };
+  for (const k of Object.keys(W)) {
+    const s = series[k]; R.g_end_of_run[k] = { raw:s.raw[nsec-1], cor:s.cor[nsec-1], mod:s.mod[nsec-1] };
+    R.g_range_after_first_hour[k] = { raw:rangeAfter(s.raw,3600), cor:rangeAfter(s.cor,3600), mod:rangeAfter(s.mod,3600) }; }
+  for (const [lab,[a,b]] of Object.entries({ '2000–3000 s':[2000,3000], '5000–6000 s':[5000,6000] }))
+    R.clary_windows_1000s[lab] = { raw:winMag(Praw,a,b), cor:winMag(Pcor,a,b), mod:winMag(Pmod,a,b) };
+  render();
+}
+
+// ---------- render ----------
+function render() {
+  const nsec = R._P.raw.sx.length, W = Object.keys(R._series);
+  $('rSamples').textContent = R.samples.toLocaleString();
+  $('rRate').textContent = R.rate_hz.toFixed(1) + ' Hz · ' + R.file;
+  $('rDur').textContent = (R.duration_s/60).toFixed(0) + ' min';
+  $('rSpeeds').textContent = 'frame ' + R.frame_rpm + ' rpm · core ' + R.core_rpm + ' rpm';
+  if (R.temperature_c) { $('rTemp').textContent = R.temperature_c.t0.toFixed(1) + ' → ' + R.temperature_c.t1.toFixed(1) + ' °C';
+    $('rHum').textContent = R.temperature_c.h0 != null ? 'humidity ' + R.temperature_c.h0.toFixed(0) + ' → ' + R.temperature_c.h1.toFixed(0) + ' %' : ''; }
+  else { $('rTemp').textContent = '—'; $('rHum').textContent = 'add sensors.csv'; }
+  $('rCov').textContent = (R.sphere_coverage_fraction.full_run*100).toFixed(0) + ' %';
+  $('rCov15').textContent = (R.sphere_coverage_fraction.first_15_min*100).toFixed(0) + ' % within the first 15 min';
+  const c = R.sphere_fit.offset_g;
+  $('rOff').textContent = c.map(v => (v>=0?'+':'') + v.toFixed(4)).join(', ');
+  $('rOffMag').textContent = R.sphere_fit.offset_mag_g.toFixed(4) + ' g';
+  const mag = R.sphere_fit.offset_mag_g;
+  $('rOffNote').textContent = mag < 0.04 ? 'typical for ISM330DHCX (±10 mg typ. per axis)' : mag < 0.12 ? 'within datasheet limits (±65 mg max per axis)' : 'larger than datasheet — check mounting / data';
+  $('rRad').textContent = R.sphere_fit.radius_g.toFixed(4) + ' g';
+  $('rScale').textContent = 'axis scale ' + R.ellipsoid_fit.scale.map(v => v.toFixed(3)).join(' / ');
+  $('rStab').textContent = R.offset_stability_g == null ? 'n/a' : '±' + (R.offset_stability_g*1000).toFixed(2) + ' mg';
+  const rows = [];
+  const rng = r => r ? fmtE(r[0]) + ' – ' + fmtE(r[1]) : '—';
+  for (const k of W) {
+    rows.push(`<tr><td>${k}, end of run</td><td class="n mono">${fmtE(R.g_end_of_run[k].raw)}</td><td class="n mono">${fmtE(R.g_end_of_run[k].cor)}</td><td class="n mono">${fmtE(R.g_end_of_run[k].mod)}</td></tr>`);
+    rows.push(`<tr><td>${k}, range after 1st hour</td><td class="n mono">${rng(R.g_range_after_first_hour[k].raw)}</td><td class="n mono"><strong>${rng(R.g_range_after_first_hour[k].cor)}</strong></td><td class="n mono">${rng(R.g_range_after_first_hour[k].mod)}</td></tr>`);
+  }
+  rows.push(`<tr><td>Whole run (${(R.duration_s/60).toFixed(0)} min)</td><td class="n mono">${fmtE(R.g_run.raw)}</td><td class="n mono">${fmtE(R.g_run.cor)}</td><td class="n mono">${fmtE(R.g_run.mod)}</td></tr>`);
+  for (const [lab,v] of Object.entries(R.clary_windows_1000s)) if (v.raw != null)
+    rows.push(`<tr><td>1000 s @ ${lab} (Clary 2022 windows)</td><td class="n mono">${fmtE(v.raw)}</td><td class="n mono">${fmtE(v.cor)}</td><td class="n mono">${fmtE(v.mod)}</td></tr>`);
+  $('gTable').innerHTML = rows.join('');
+  $('results').classList.remove('hidden');
+  drawG(); drawSphere();
+}
+
+// ⟨g⟩ chart: two panels, log y
+const gState = { panels: [] };
+function drawG() {
+  const cv = $('gChart'), ctx = cv.getContext('2d'), Wd = cv.width, Ht = cv.height;
+  ctx.clearRect(0,0,Wd,Ht); ctx.fillStyle = css('--surface'); ctx.fillRect(0,0,Wd,Ht);
+  const keys = Object.keys(R._series), nsec = R._P.raw.sx.length, tmin = nsec/60;
+  const pad = { l:64, r:16, t:34, b:40 }, gap = 40, pw = (Wd - pad.l - pad.r - gap)/2, ph = Ht - pad.t - pad.b;
+  const ymin = 1e-4, ymax = 1, yOf = v => pad.t + ph * (1 - (Math.log10(Math.max(v,ymin)) - Math.log10(ymin)) / (Math.log10(ymax)-Math.log10(ymin)));
+  gState.panels = [];
+  keys.forEach((k, pi) => {
+    const x0 = pad.l + pi*(pw+gap), s = R._series[k], w = { '15 min':900, '1 h':3600 }[k], xOf = m => x0 + pw * m / tmin;
+    ctx.font = '13px sans-serif'; ctx.fillStyle = css('--ink'); ctx.textAlign = 'left'; ctx.fillText(k + ' window', x0, pad.t - 12);
+    ctx.strokeStyle = css('--grid'); ctx.lineWidth = 1;
+    for (let e = -4; e <= 0; e++) { const y = yOf(Math.pow(10,e)); ctx.beginPath(); ctx.moveTo(x0,y); ctx.lineTo(x0+pw,y); ctx.stroke(); }
+    ctx.fillStyle = css('--muted'); ctx.font = '11px sans-serif'; ctx.textAlign = 'right';
+    [['1',0],['10⁻¹',-1],['10⁻²',-2],['10⁻³',-3],['10⁻⁴',-4]].forEach(([t,e]) => ctx.fillText(t, x0-8, yOf(Math.pow(10,e))+4));
+    ctx.strokeStyle = css('--axis'); ctx.beginPath(); ctx.moveTo(x0, pad.t); ctx.lineTo(x0, pad.t+ph); ctx.lineTo(x0+pw, pad.t+ph); ctx.stroke();
+    ctx.fillStyle = css('--muted'); ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
+    const step = tmin > 300 ? 60 : tmin > 150 ? 30 : 20;
+    for (let m = 0; m <= tmin; m += step) { ctx.fillText(m.toFixed(0), xOf(m), pad.t+ph+16); }
+    ctx.fillText('Time since run start (min)', x0+pw/2, pad.t+ph+32);
+    // 1e-3 reference
+    ctx.setLineDash([5,4]); ctx.strokeStyle = css('--ref'); ctx.beginPath(); ctx.moveTo(x0, yOf(1e-3)); ctx.lineTo(x0+pw, yOf(1e-3)); ctx.stroke(); ctx.setLineDash([]);
+    const line = (arr, col, lw) => { ctx.strokeStyle = col; ctx.lineWidth = lw; ctx.beginPath(); let first = true;
+      for (let i = w; i < nsec; i++) { const x = xOf(i/60), y = yOf(arr[i]); if (first) { ctx.moveTo(x,y); first = false; } else ctx.lineTo(x,y); } ctx.stroke(); };
+    line(s.mod, css('--model'), 1.5); line(s.raw, css('--raw'), 2); line(s.cor, css('--cor'), 2);
+    // end labels
+    ctx.font = '11px sans-serif'; ctx.textAlign = 'right'; ctx.fillStyle = css('--ink');
+    let lo = Infinity; for (let i = Math.max(w, nsec-600); i < nsec; i++) if (s.cor[i] < lo) lo = s.cor[i];   // label below the band's recent minimum
+    ctx.fillText(fmtE(s.raw[nsec-1]) + ' g', x0+pw-2, yOf(s.raw[nsec-1]) - 6);
+    ctx.fillText(fmtE(s.cor[nsec-1]) + ' g', x0+pw-2, yOf(lo) + 14);
+    gState.panels.push({ x0, pw, w, k, xOf, yOf });
+  });
+  ctx.fillStyle = css('--muted'); ctx.font = '11px sans-serif'; ctx.textAlign = 'left';
+  ctx.save(); ctx.translate(14, pad.t + ph/2); ctx.rotate(-Math.PI/2); ctx.textAlign = 'center'; ctx.fillText('Time-averaged ⟨g⟩ (g)', 0, 0); ctx.restore();
+}
+$('gChart').addEventListener('mousemove', e => {
+  if (!R) return; const cv = $('gChart'), rect = cv.getBoundingClientRect(), x = (e.clientX-rect.left) * cv.width/rect.width;
+  const p = gState.panels.find(p => x >= p.x0 && x <= p.x0+p.pw); const tip = $('tip'); if (!p) { tip.style.display='none'; return; }
+  const nsec = R._P.raw.sx.length, i = Math.min(nsec-1, Math.max(p.w, Math.round((x-p.x0)/p.pw*nsec))); const s = R._series[p.k];
+  tip.innerHTML = `<b>${p.k} window · ${(i/60).toFixed(1)} min</b><br>raw ${fmtE(s.raw[i])} g<br>corrected ${fmtE(s.cor[i])} g<br>model ${fmtE(s.mod[i])} g`;
+  tip.style.display = 'block'; tip.style.left = (e.clientX+14)+'px'; tip.style.top = (e.clientY+14)+'px';
+});
+$('gChart').addEventListener('mouseleave', () => $('tip').style.display='none');
+
+function drawSphere() {
+  const cv = $('sChart'), ctx = cv.getContext('2d'), Wd = cv.width, Ht = cv.height;
+  ctx.clearRect(0,0,Wd,Ht); ctx.fillStyle = css('--surface'); ctx.fillRect(0,0,Wd,Ht);
+  const { cx, cy, cz, n, ell } = R._pts, rad = Math.min(Wd/2, Ht) * 0.42, step = Math.max(1, Math.floor(n/60000));
+  const centres = [[Wd*0.27, Ht*0.52], [Wd*0.73, Ht*0.52]];
+  ctx.font = '13px sans-serif'; ctx.fillStyle = css('--ink'); ctx.textAlign = 'center';
+  ctx.fillText('Front hemisphere (+z)', centres[0][0], 24); ctx.fillText('Back hemisphere (−z)', centres[1][0], 24);
+  centres.forEach(([X,Y]) => { ctx.strokeStyle = css('--axis'); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(X,Y,rad,0,2*Math.PI); ctx.stroke(); });
+  ctx.fillStyle = css('--cor'); ctx.globalAlpha = 0.35;
+  for (let i = 0; i < n; i += step) {
+    const x = cx[i]/ell.scale[0], y = cy[i]/ell.scale[1], z = cz[i]/ell.scale[2], m = Math.hypot(x,y,z) || 1;
+    const [X,Y] = centres[z >= 0 ? 0 : 1]; ctx.fillRect(X + rad*x/m - 0.75, Y - rad*y/m - 0.75, 1.5, 1.5);
+  }
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = css('--muted'); ctx.font = '11px sans-serif';
+  ctx.fillText((R.sphere_coverage_fraction.full_run*100).toFixed(0) + ' % of 288 equal-area cells visited · x right, y up, z toward viewer', Wd/2, Ht-10);
+}
+
+// ---------- exports ----------
+$('btnPrint').addEventListener('click', () => window.print());
+$('btnJson').addEventListener('click', () => { const o = {...R}; delete o._series; delete o._P; delete o._pts; dl('gbias_results.json', JSON.stringify(o, null, 2), 'application/json'); });
+$('btnCsv').addEventListener('click', () => { const P = R._P, s = R._series, n = P.raw.sx.length, L = ['t_s,raw_x_g,raw_y_g,raw_z_g,cor_x_g,cor_y_g,cor_z_g,g_raw_15min,g_cor_15min,g_raw_1h,g_cor_1h'];
+  for (let i=0;i<n;i++) L.push([i, P.raw.sx[i].toFixed(5), P.raw.sy[i].toFixed(5), P.raw.sz[i].toFixed(5), P.cor.sx[i].toFixed(5), P.cor.sy[i].toFixed(5), P.cor.sz[i].toFixed(5),
+    s['15 min'].raw[i].toFixed(6), s['15 min'].cor[i].toFixed(6), s['1 h'].raw[i].toFixed(6), s['1 h'].cor[i].toFixed(6)].join(','));
+  dl('gbias_per_second.csv', L.join('\n'), 'text/csv'); });
+function dl(name, text, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], {type})); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); }
+['frameRpm','coreRpm'].forEach(id => $(id).addEventListener('change', () => { if (files.imu) run(); }));
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { if (R) { drawG(); drawSphere(); } });
+})();
+</script>
+</body>
+</html>

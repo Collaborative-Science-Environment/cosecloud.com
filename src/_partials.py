@@ -17,11 +17,14 @@ def head(title, description, current=""):
 <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/icon-180.png">
 <meta name="theme-color" content="#004053">
+<link rel="alternate" type="application/rss+xml" title="CoSE news" href="/news/feed.xml">
 <link rel="stylesheet" href="/style.css">
 <style>.brand .wm{{fill:var(--teal)}}</style>"""
 
 NAV_ITEMS = [
     ("/#products", "Instruments", "products"),
+    ("/tools/", "Tools", "tools"),
+    ("/news/", "News", "news"),
     ("/founders", "About", "founders"),
     ("/#contact", "Contact", "contact"),
 ]
@@ -55,6 +58,9 @@ def footer():
         <li><a href="/scispinner-max">SciSpinner Max</a></li>
         <li><a href="/#products">SciSpinner Duo</a></li>
         <li><a href="/#products">FlashLapse</a></li>
+        <li><a href="/downloads/SciSpinner_Max_Datasheet_2026-10.pdf">Datasheet (PDF)</a></li>
+        <li><a href="/tools/">Tools</a></li>
+        <li><a href="/news/">News</a></li>
         <li><a href="/founders">About CoSE</a></li>
       </ul>
     </div>
