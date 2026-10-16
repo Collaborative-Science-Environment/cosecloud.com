@@ -239,10 +239,11 @@ section + section { border-top: 1px solid var(--line); }
 .list-plain li::before { content: ""; position: absolute; left: 0; top: .55em; width: 8px; height: 8px; background: var(--accent); transform: rotate(45deg); }
 
 /* ---- quote form ---- */
-.quote { background: var(--teal); color: #E3ECEF; }
+.quote { background: #004053; color: #E3ECEF; }  /* fixed brand teal: --teal turns pale in dark mode */
 .quote h2, .quote h3, .quote .eyebrow { color: #FFFFFF; }
 .quote .eyebrow { color: #8FD0E2; }
 .quote p { color: #C6D8DE; }
+.quote a { color: #8FD0E2; } .quote a:hover { color: #FFFFFF; }
 .quote .wrap { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: clamp(2rem, 5vw, 4rem); align-items: start; }
 @media (max-width: 820px) { .quote .wrap { grid-template-columns: 1fr; } }
 .quote-side { display: grid; gap: 1.2rem; }
