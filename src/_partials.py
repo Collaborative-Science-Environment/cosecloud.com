@@ -59,6 +59,7 @@ def footer():
         <li><a href="/#products">SciSpinner Duo</a></li>
         <li><a href="/#products">FlashLapse</a></li>
         <li><a href="/downloads/SciSpinner_Max_Datasheet_2026-10.pdf">Datasheet (PDF)</a></li>
+        <li><a href="/accessories">Accessories and parts</a></li>
         <li><a href="/tools/">Tools</a></li>
         <li><a href="/news/">News</a></li>
         <li><a href="/founders">About CoSE</a></li>

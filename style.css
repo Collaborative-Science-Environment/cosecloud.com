@@ -342,3 +342,22 @@ a.product:hover .more { text-decoration: underline; }
 .price-val { font-size: 1.15rem; color: var(--ink-2); }
 .price-val strong { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 1.9rem; color: var(--heading); font-weight: 500; margin: 0 .25rem; }
 .price-note { color: var(--ink-2); font-size: .95rem; max-width: 60ch; }
+
+/* Accessories price list */
+.acc-list li { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+.acc-price { white-space: nowrap; font-variant-numeric: tabular-nums; color: var(--heading); }
+.product-art:has(img.line-art), .product-art:has(img.part-photo) { position: relative; }
+.product-art img.line-art { position: absolute; inset: 1.25rem; width: calc(100% - 2.5rem); height: calc(100% - 2.5rem); filter: var(--drawing-filter, none); }
+.part-price { margin-top: .35rem; font-size: .95rem; }
+.part-price strong { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 1.5rem; font-weight: 500; color: var(--heading); }
+.product-art img.part-photo { position: absolute; inset: 1.25rem; width: calc(100% - 2.5rem); height: calc(100% - 2.5rem); opacity: 1; }
+/* Accessories: photos of dark parts need a light backdrop, so every picture panel on this page
+   stays light in dark mode too (line drawings un-inverted), keeping the cards consistent */
+#parts .product-art { --plate: #EAF1F3; background: var(--plate); }
+#parts .product-art img.line-art { opacity: 1; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) #parts .product-art { --plate: #D3DEE2; border-bottom-color: transparent; }
+  :root:not([data-theme="light"]) #parts .product-art img.line-art { filter: none; }
+  :root:not([data-theme="light"]) #parts .product-art .ph { color: #4A6670; border-color: #9FB4BB; } }
+:root[data-theme="dark"] #parts .product-art { --plate: #D3DEE2; border-bottom-color: transparent; }
+:root[data-theme="dark"] #parts .product-art img.line-art { filter: none; }
+:root[data-theme="dark"] #parts .product-art .ph { color: #4A6670; border-color: #9FB4BB; }
