@@ -64,7 +64,7 @@ def md_to_html(text):
         if m:
             flush_para(); flush_list(); flush_quote()
             cap = f"<figcaption>{_inline(m.group(3))}</figcaption>" if m.group(3) else ""
-            out.append(f'<figure class="post-video"><video src="{m.group(1)}" poster="{m.group(2)}" controls muted loop playsinline preload="none"></video>{cap}</figure>'); continue
+            out.append(f'<figure class="post-video"><video src="{m.group(1)}" poster="{m.group(2)}" width="1280" height="720" controls muted loop playsinline preload="metadata"></video>{cap}</figure>'); continue
         if re.match(r"^(-{3,}|\*{3,})$", line):
             flush_para(); flush_list(); flush_quote(); out.append("<hr>"); continue
         m = re.match(r"^\s*[-*]\s+(.*)$", line)
