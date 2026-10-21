@@ -137,8 +137,8 @@ def index_body(posts):
   <div class="wrap" style="grid-template-columns:minmax(0,1fr)">
     <div class="hero-copy" style="max-width:720px">
       <p class="eyebrow">News</p>
-      <h1>Updates from the workshop</h1>
-      <p class="lede">Software releases, new instruments, where they are going and what we learn along the way. <a href="/news/feed.xml">RSS feed</a>.</p>
+      <h1>COSE updates</h1>
+      <p class="lede">Software releases, new instruments, deliveries and engineering updates from COSE. <a href="/news/feed.xml">RSS feed</a>.</p>
     </div>
   </div>
 </section>
@@ -159,7 +159,7 @@ def home_block(posts, n=3):
     <div class="grid-2">
       <div>
         <p class="eyebrow">News</p>
-        <h2>Latest from the workshop</h2>
+        <h2>Latest from COSE</h2>
         <p style="margin-top:1.25rem"><a class="more" href="/news/">All news &rarr;</a></p>
       </div>
       {list_items(posts[:n], "post-list compact")}
@@ -181,7 +181,7 @@ def feed(posts):
   </item>""" for p in posts)
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"><channel>
-  <title>CoSE news</title>
+  <title>COSE news</title>
   <link>{SITE}/news/</link>
   <description>Updates from Collaborative Science Environment: software releases, instruments and deliveries.</description>
   <lastBuildDate>{now}</lastBuildDate>{items}

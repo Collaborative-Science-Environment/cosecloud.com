@@ -14,19 +14,19 @@ DIST = ROOT / "dist"
 POSTS = _news.load_posts(ROOT)
 
 PAGES = {
-    "index": dict(title="CoSE — research instruments for gravitational biology",
+    "index": dict(title="COSE — research instruments for gravitational biology",
                   description="Collaborative Science Environment designs and builds clinostats and time-lapse imaging instruments for gravitational biology. Madison, Wisconsin.",
                   current="home"),
     "scispinner-max": dict(title="SciSpinner Max — specifications and software",
                            description="Two independent axes, 167 mm sample chamber, onboard camera, lighting and sensors, measured time-averaged gravity. Full specifications for the SciSpinner Max clinostat.",
                            current="product"),
-    "tools": dict(title="Tools — CoSE",
-                  description="Browser-based tools for SciSpinner data: g-level analysis of motion-sensor logs, with more to come. Everything runs locally; nothing is uploaded.",
+    "tools": dict(title="Tools — COSE",
+                  description="Browser-based tools for SciSpinner data: g-level analysis of motion-sensor logs and a clinostat simulator. Everything runs locally; nothing is uploaded.",
                   current="tools", out="tools/index.html"),
-    "accessories": dict(title="Accessories and parts — CoSE",
+    "accessories": dict(title="Accessories and parts — COSE",
                         description="Spare Control Modules, extended cables, sample inserts and replacement parts for the SciSpinner Max, with US list prices.",
                         current="accessories"),
-    "founders": dict(title="About CoSE",
+    "founders": dict(title="About COSE",
                      description="The people behind Collaborative Science Environment: a science educator, a plant scientist and an engineer in Madison, Wisconsin.",
                      current="founders"),
 }
@@ -52,7 +52,7 @@ TOOL_BAR = """<style>
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .cose-bar{background:#14171a;border-color:#2c3238}:root:not([data-theme="light"]) .cose-bar a{color:#b8c0c8}:root:not([data-theme="light"]) .cose-bar .brand .wm{fill:#DCEBF0}}
 @media print{.cose-bar{display:none}}
 </style>
-<div class="cose-bar"><a class="brand" href="/" aria-label="CoSE home">""" + logo_svg() + """</a><a href="/tools/">All tools &rarr;</a></div>
+<div class="cose-bar"><a class="brand" href="/" aria-label="COSE home">""" + logo_svg() + """</a><a href="/tools/">All tools &rarr;</a></div>
 """
 
 def tool_page(html):
@@ -75,15 +75,16 @@ def main():
         "/students/ /founders 301\n/the-cose-team/ /founders 301\n/blog/ / 301\n/cart/ / 301\n"
         "/index.html / 301\n/scispinner-max.html /scispinner-max 301\n/founders.html /founders 301\n"
         "/tools/g-level-analysis.html /tools/g-level-analysis 301\n/analysis /tools/g-level-analysis 301\n"
+        "/tools/clinostat-simulator.html /tools/clinostat-simulator 301\n/simulator /tools/clinostat-simulator 301\n"
         "/blog / 301\n/news/index.html /news/ 301\n/feed /news/feed.xml 301\n"
         "/datasheet /downloads/SciSpinner_Max_Datasheet_2026-10.pdf 302\n")
     (DIST / "tools").mkdir()
     # News: posts/*.md -> /news/<slug>, /news/ and the RSS feed
     (DIST / "news").mkdir()
     for p in POSTS:
-        meta = dict(title=f"{p['title']} — CoSE", description=p["summary"] or p["title"], current="news")
+        meta = dict(title=f"{p['title']} — COSE", description=p["summary"] or p["title"], current="news")
         (DIST / "news" / f"{p['slug']}.html").write_text(page("news", meta, body=_news.post_body(p)))
-    (DIST / "news" / "index.html").write_text(page("news", dict(title="News — CoSE",
+    (DIST / "news" / "index.html").write_text(page("news", dict(title="News — COSE",
         description="Updates from Collaborative Science Environment: software releases, instruments and deliveries.",
         current="news"), body=_news.index_body(POSTS)))
     (DIST / "news" / "feed.xml").write_text(_news.feed(POSTS))

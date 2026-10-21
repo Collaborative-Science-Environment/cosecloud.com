@@ -5,7 +5,7 @@ ROOT = Path(__file__).resolve().parent.parent
 LOGO = (ROOT / "assets" / "logo-inline.txt").read_text()
 
 def logo_svg(height_class=""):
-    return (f'<svg class="{height_class}" viewBox="0 0 311.43 116.43" role="img" aria-label="CoSE">{LOGO}</svg>')
+    return (f'<svg class="{height_class}" viewBox="0 0 311.43 116.43" role="img" aria-label="COSE">{LOGO}</svg>')
 
 def head(title, description, current=""):
     return f"""<title>{title}</title>
@@ -17,7 +17,7 @@ def head(title, description, current=""):
 <link rel="icon" type="image/png" sizes="192x192" href="/assets/icons/icon-192.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/icon-180.png">
 <meta name="theme-color" content="#004053">
-<link rel="alternate" type="application/rss+xml" title="CoSE news" href="/news/feed.xml">
+<link rel="alternate" type="application/rss+xml" title="COSE news" href="/news/feed.xml">
 <link rel="stylesheet" href="/style.css">
 <style>.brand .wm{{fill:var(--teal)}}</style>"""
 
@@ -36,7 +36,7 @@ def nav(current=""):
         items += f'<li><a href="{href}"{cur}>{label}</a></li>'
     return f"""<header class="nav">
   <div class="wrap">
-    <a class="brand" href="/" aria-label="CoSE home">{logo_svg()}</a>
+    <a class="brand" href="/" aria-label="COSE home">{logo_svg()}</a>
     <button class="nav-toggle" id="nav-toggle" aria-expanded="false" aria-controls="nav-links">Menu</button>
     <ul class="nav-links" id="nav-links">
       {items}
@@ -49,7 +49,7 @@ def footer():
     return f"""<footer>
   <div class="wrap">
     <div>
-      <a class="brand" href="/" aria-label="CoSE home">{logo_svg()}</a>
+      <a class="brand" href="/" aria-label="COSE home">{logo_svg()}</a>
       <p style="margin-top:1rem;max-width:34ch">Collaborative Science Environment Inc.<br>A Wisconsin benefit corporation building research instruments for gravitational biology.</p>
     </div>
     <div>
@@ -62,7 +62,7 @@ def footer():
         <li><a href="/accessories">Accessories and parts</a></li>
         <li><a href="/tools/">Tools</a></li>
         <li><a href="/news/">News</a></li>
-        <li><a href="/founders">About CoSE</a></li>
+        <li><a href="/founders">About COSE</a></li>
       </ul>
     </div>
     <div>
@@ -75,7 +75,7 @@ def footer():
       </ul>
     </div>
     <div class="fine">
-      <span>&copy; 2026 Collaborative Science Environment Inc. SciSpinner and CoSE are trademarks of Collaborative Science Environment Inc.</span>
+      <span>&copy; 2026 Collaborative Science Environment Inc. SciSpinner and COSE are trademarks of Collaborative Science Environment Inc.</span>
       <span>Made in Madison, Wisconsin</span>
     </div>
   </div>

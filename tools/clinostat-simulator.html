@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SciSpinner Max clinostat simulator</title>
+<meta name="description" content="Set the frame and core speeds of a SciSpinner Max and watch the motion sensor reading, time-averaged gravity and sphere coverage, with the instrument turning in 3D. Runs entirely in your browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: instrument on the left, its controls and the numbers it would report on the right, live traces below.
+   Tokens are the cosecloud.com site tokens, so the tool sits with the existing g-level analysis page. */
+:root {
+  --bg: #F6F9FA; --surface: #FFFFFF; --surface-2: #EAF1F3;
+  --ink: #12303A; --ink-2: #3E5C66; --muted: #6C858D;
+  --line: #D5E0E4; --line-strong: #B7C8CE;
+  --accent: #0F7F9F; --accent-ink: #FFFFFF; --heading: #004053;
+  --draw: #004053; --draw-fill: #F6F9FA; --tint-frame: #D9EAF0; --tint-core: #EEF5F7;
+  --ax-x: #C2571A; --ax-y: #2E7D4F; --ax-z: #0F7F9F; --w15: #0F7F9F; --w60: #6B5CA5; --ref: #9AA3AB;
+  --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  --radius: 4px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  color-scheme: dark; --bg: #0C1A1F; --surface: #122730; --surface-2: #17323C;
+  --ink: #E3ECEF; --ink-2: #B7C8CE; --muted: #8AA3AB; --line: #23404A; --line-strong: #345561;
+  --accent: #3FA9C7; --accent-ink: #061418; --heading: #DCEBF0;
+  --draw: #8FD0E2; --draw-fill: #0C1A1F; --tint-frame: #163844; --tint-core: #112A33;
+  --ax-x: #E0803F; --ax-y: #5FBF85; --ax-z: #3AA6C6; --w15: #3AA6C6; --w60: #9A8BD6; --ref: #6B757E; } }
+:root[data-theme="dark"] {
+  color-scheme: dark; --bg: #0C1A1F; --surface: #122730; --surface-2: #17323C;
+  --ink: #E3ECEF; --ink-2: #B7C8CE; --muted: #8AA3AB; --line: #23404A; --line-strong: #345561;
+  --accent: #3FA9C7; --accent-ink: #061418; --heading: #DCEBF0;
+  --draw: #8FD0E2; --draw-fill: #0C1A1F; --tint-frame: #163844; --tint-core: #112A33;
+  --ax-x: #E0803F; --ax-y: #5FBF85; --ax-z: #3AA6C6; --w15: #3AA6C6; --w60: #9A8BD6; --ref: #6B757E; }
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+img, canvas { max-width: 100%; }
+[hidden] { display: none !important; }
+.wrap { max-width: 1200px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top { padding-block: 1.6rem 1rem; }
+.eyebrow { font-family: var(--mono); font-size: .76rem; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 0 0 .5rem; }
+h1 { font-size: clamp(1.6rem, 3.2vw, 2.2rem); line-height: 1.15; color: var(--heading); margin: 0 0 .5rem; font-weight: 600; text-wrap: balance; }
+.lede { color: var(--ink-2); max-width: 68ch; margin: 0; }
+.main { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 1.5rem; align-items: start; padding-block: .5rem 1rem; }
+@media (max-width: 880px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+.stage { position: relative; aspect-ratio: 4 / 3.3; max-width: 100%; }
+.stage canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; cursor: grab; touch-action: pan-y; }
+.stage .loading { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--mono); font-size: .8rem; color: var(--muted); }
+.stage-foot { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .5rem 1rem; padding: .55rem .9rem; border-top: 1px solid var(--line); font-family: var(--mono); font-size: .78rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; gap: .9rem; flex-wrap: wrap; }
+.legend i { display: inline-block; width: .7rem; height: .18rem; vertical-align: middle; margin-right: .35rem; border-radius: 1px; }
+
+.side { display: grid; gap: 1rem; min-width: 0; }
+.box { padding: 1rem 1.1rem; display: grid; gap: .75rem; }
+.box h2 { font-size: .74rem; font-family: var(--mono); font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.axis { display: grid; gap: .4rem; }
+.axishead { display: flex; justify-content: space-between; align-items: center; gap: .6rem; }
+.axishead label { font-weight: 500; }
+.axisrow { display: grid; grid-template-columns: minmax(0, 1fr) 6.4rem; gap: .6rem; align-items: center; }
+.unit { font-family: var(--mono); font-size: .8rem; color: var(--muted); margin-left: .3rem; }
+input[type=range] { width: 100%; accent-color: var(--accent); }
+input[type=number] { width: 100%; font: inherit; font-family: var(--mono); font-variant-numeric: tabular-nums; padding: .3rem .45rem; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--bg); color: var(--ink); }
+.hint { font-size: .84rem; color: var(--muted); margin: 0; }
+.hint.warn { color: var(--ax-x); }
+.chips, .seg { display: flex; flex-wrap: wrap; gap: .4rem; }
+.chip, .seg button, .btn { font: inherit; font-size: .86rem; padding: .35rem .7rem; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--ink-2); cursor: pointer; }
+.seg button[aria-pressed="true"], .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; justify-content: space-between; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.readout { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
+.readout div { display: grid; gap: .1rem; }
+.readout .lab { font-family: var(--mono); font-size: .74rem; color: var(--muted); }
+.readout .val { font-family: var(--mono); font-size: 1.15rem; font-variant-numeric: tabular-nums; color: var(--heading); }
+.gtable { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.gtable td, .gtable th { padding: .32rem 0; border-bottom: 1px solid var(--line); text-align: left; font-weight: 400; }
+.gtable th { font-size: .76rem; color: var(--muted); font-family: var(--mono); letter-spacing: .04em; }
+.gtable td.n, .gtable th.n { text-align: right; font-family: var(--mono); }
+.gtable tr.key td { color: var(--heading); font-weight: 500; }
+
+.charts { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 1.5rem; padding-block: 0 2rem; }
+.charts .wide { grid-column: 1 / -1; }
+.chart canvas.sphere { height: auto; aspect-ratio: 2.1 / 1; width: 100%; max-width: 820px; margin: 0 auto; }
+@media (max-width: 880px) { .charts { grid-template-columns: minmax(0, 1fr); } }
+.chart { padding: .9rem 1rem 1rem; display: grid; gap: .5rem; min-width: 0; }
+.chart h3 { margin: 0; font-size: .95rem; color: var(--heading); font-weight: 600; }
+.chart canvas { width: 100%; height: 190px; display: block; }
+.chart .cap { font-size: .8rem; color: var(--muted); margin: 0; }
+details.method { padding-block: 0 2.5rem; color: var(--ink-2); }
+details.method summary { cursor: pointer; color: var(--heading); font-weight: 500; }
+details.method p { max-width: 80ch; }
+</style>
+</head>
+<body>
+
+<header class="top"><div class="wrap">
+  <p class="eyebrow"><a href="/tools/" style="color:inherit;text-decoration:none">Tools</a> &middot; SciSpinner Max</p>
+  <h1>Clinostat simulator</h1>
+  <p class="lede">Set the frame and core speeds and watch what a motion sensor module in the core would read, and how far the time-averaged gravity falls over 2 minutes, 15 minutes and an hour. Everything is calculated in your browser.</p>
+</div></header>
+
+<div class="wrap main">
+  <section class="panel" aria-label="Instrument">
+    <div class="stage" id="stage"><div class="loading" id="loading">Loading model…</div></div>
+    <div class="stage-foot">
+      <span id="angles">frame 0° · core 0°</span>
+    </div>
+  </section>
+
+  <div class="side">
+    <section class="panel box" aria-label="Speeds">
+      <h2>Axis speeds</h2>
+      <div class="axis">
+        <div class="axishead"><label for="fr">Frame</label>
+          <div class="seg" id="dirF" aria-label="Frame direction"><button type="button" data-d="cw" aria-pressed="true">Clockwise</button><button type="button" data-d="ccw" aria-pressed="false">Counter-clockwise</button></div></div>
+        <div class="axisrow"><input id="frR" type="range" min="0" max="5" step="0.001" value="3.875" aria-label="Frame speed"><span><input id="fr" type="number" min="0" max="5" step="0.001" value="3.875" aria-describedby="spdHint" style="width:5rem"><span class="unit">rpm</span></span></div>
+      </div>
+      <div class="axis">
+        <div class="axishead"><label for="cr">Core</label>
+          <div class="seg" id="dirC" aria-label="Core direction"><button type="button" data-d="cw" aria-pressed="true">Clockwise</button><button type="button" data-d="ccw" aria-pressed="false">Counter-clockwise</button></div></div>
+        <div class="axisrow"><input id="crR" type="range" min="0" max="5" step="0.001" value="1.5" aria-label="Core speed"><span><input id="cr" type="number" min="0" max="5" step="0.001" value="1.5" aria-describedby="spdHint" style="width:5rem"><span class="unit">rpm</span></span></div>
+      </div>
+      <p class="hint" id="spdHint">0.050–5.000 rpm per axis in 0.001 rpm steps; 0 holds the axis still. Direction is as seen from the axis's motor end.</p>
+      <div class="chips" aria-label="Presets">
+        <button class="chip" type="button" data-f="3.875" data-c="1.5">Instrument default</button>
+        <button class="chip" type="button" data-f="2" data-c="2">Equal speeds</button>
+        <button class="chip" type="button" data-f="1" data-c="2">1 : 2 ratio</button>
+        <button class="chip" type="button" data-f="2" data-c="0">Frame only</button>
+      </div>
+    </section>
+
+    <section class="panel box" aria-label="Time">
+      <h2>Run</h2>
+      <div class="row">
+        <div class="seg" id="speed" aria-label="Simulation speed">
+          <button type="button" data-x="1" aria-pressed="true">1×</button>
+          <button type="button" data-x="10" aria-pressed="false">10×</button>
+          <button type="button" data-x="60" aria-pressed="false">60×</button>
+          <button type="button" data-x="600" aria-pressed="false">600×</button>
+        </div>
+        <div class="seg"><button class="btn" type="button" id="play">Pause</button><button class="btn" type="button" id="reset">Restart run</button></div>
+      </div>
+      <p class="hint">Run time <span class="mono" id="clock" style="font-family:var(--mono);color:var(--ink)">00:00:00</span>. Changing a speed or direction starts a new run.</p>
+    </section>
+
+    <section class="panel box" aria-label="Sensor reading">
+      <h2>Motion sensor module, now</h2>
+      <div class="readout">
+        <div><span class="lab" style="color:var(--ax-x)">x</span><span class="val" id="ax">+1.000</span></div>
+        <div><span class="lab" style="color:var(--ax-y)">y</span><span class="val" id="ay">+0.000</span></div>
+        <div><span class="lab" style="color:var(--ax-z)">z</span><span class="val" id="az">+0.000</span></div>
+      </div>
+      <table class="gtable">
+        <thead><tr><th>Time-averaged gravity</th><th class="n">⟨g⟩</th></tr></thead>
+        <tbody>
+          <tr><td>2 min</td><td class="n" id="g2">—</td></tr>
+          <tr class="key"><td>15 min</td><td class="n" id="g15">—</td></tr>
+          <tr class="key"><td>1 h</td><td class="n" id="g60">—</td></tr>
+          <tr><td>Whole run</td><td class="n" id="gRun">—</td></tr>
+          <tr><td>Sphere coverage</td><td class="n" id="cov">—</td></tr>
+        </tbody>
+      </table>
+      <p class="hint">Readings in g. Windows are trailing and computed from one-second means, as on the instrument's Gravity tab.</p>
+    </section>
+  </div>
+</div>
+
+<div class="wrap charts">
+  <section class="panel chart wide" aria-label="Sphere coverage">
+    <h3>Coverage of the sphere, live <span id="covHead" style="font-family:var(--mono);font-weight:400;color:var(--muted);font-size:.85rem"></span></h3>
+    <canvas id="cSphere" class="sphere" aria-label="Gravity direction in the sensor frame on two hemisphere views, with the cells it has visited shaded"></canvas>
+    <p class="cap">Gravity direction in the sensor frame, as seen looking down each axis end: front hemisphere (+z) and back hemisphere (−z). Shaded cells have been visited at least once (288 equal-area cells); the line is the last 30 s of run time and the dot is now.</p>
+  </section>
+  <section class="panel chart" aria-label="Accelerometer trace">
+    <h3>Accelerometer, live</h3>
+    <canvas id="cTrace" aria-label="Accelerometer x, y and z over the last minute of run time"></canvas>
+    <p class="cap" id="traceCap">Last 60 s of run time.</p>
+  </section>
+  <section class="panel chart" aria-label="Time-averaged gravity">
+    <h3>⟨g⟩ over the run</h3>
+    <canvas id="cAvg" aria-label="Trailing 15-minute and 1-hour time-averaged gravity on a log scale"></canvas>
+    <p class="cap"><span style="color:var(--w15)">15 min</span> and <span style="color:var(--w60)">1 h</span> trailing windows, log scale. Dashed line: 10⁻³ g.</p>
+  </section>
+</div>
+
+<div class="wrap">
+  <details class="method">
+    <summary>How this is calculated</summary>
+    <p>The sample frame turns with the core, which turns inside the frame. With frame speed ω<sub>o</sub> and core speed ω<sub>i</sub>, a sensor at the centre reads the gravity direction g = (sin ω<sub>o</sub>t · cos ω<sub>i</sub>t, sin ω<sub>o</sub>t · sin ω<sub>i</sub>t, cos ω<sub>o</sub>t), Clary et&nbsp;al. (2022) Eq. 1, the same kinematic model the g-level analysis tool compares runs against. The sensor is sampled at 20 Hz; ⟨g⟩ is the magnitude of the mean of one-second means over each trailing window, the instrument's own calculation. A real run adds the sensor's small zero-g offset, which the instrument and the analysis tool measure and remove. Coverage counts 288 equal-area cells of the unit sphere (12 bands in sin(latitude) × 24 in longitude) visited by the gravity direction.</p>
+  </details>
+</div>
+
+<footer class="wrap" style="padding-block:0 2.5rem;font-size:.82rem;color:var(--muted)">Clinostat simulator v1.0 &middot; Collaborative Science Environment Inc. &middot; Open source, GPL-3.0 &middot; Nothing leaves your browser.</footer>
+<script type="importmap">{"imports":{"three":"/assets/vendor/three/build/three.module.min.js","three/addons/":"/assets/vendor/three/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { LineSegments2 } from 'three/addons/lines/LineSegments2.js';
+import { LineSegmentsGeometry } from 'three/addons/lines/LineSegmentsGeometry.js';
+import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
+
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+// ---------- physics (pure; kept identical to the g-level analysis tool's kinematic model) ----------
+const RPM = Math.PI / 30;                  // rpm -> rad/s
+const HZ = 20, DT = 1 / HZ;                // sensor sampling, as on the instrument
+function gravityAt(t, fo, ci) {            // Clary et al. 2022 Eq. 1, sensor frame, in g
+  const a = fo * RPM * t, b = ci * RPM * t, so = Math.sin(a);
+  return [so * Math.cos(b), so * Math.sin(b), Math.cos(a)];
+}
+// 3D pose that reproduces Eq. 1 exactly: frame angle = ωo·t − 90°, core angle = ωi·t,
+// with the sensor axes on the core's local -X, ... mapping (verified numerically).
+const poseAt = (t, fo, ci) => [fo * RPM * t - Math.PI / 2, ci * RPM * t];
+
+function newRun() {
+  return { t: 0, k: 0, sec: 0, acc: [0, 0, 0, 0], cx: [0], cy: [0], cz: [0], cov: new Uint8Array(288), covN: 0,
+           w15: [], w60: [], trace: [] };
+}
+function covCell(g) {                      // 12 bands in sin(lat) x 24 in longitude
+  const n = Math.hypot(g[0], g[1], g[2]) || 1, z = g[2] / n;
+  const band = Math.min(11, Math.floor((z + 1) / 2 * 12));
+  let lon = Math.atan2(g[1], g[0]); if (lon < 0) lon += 2 * Math.PI;
+  return band * 24 + Math.min(23, Math.floor(lon / (2 * Math.PI) * 24));
+}
+function winMag(R, w) {                    // |mean of the last w one-second means|; null until w seconds exist
+  const n = R.cx.length - 1; if (n < w) return null;
+  return Math.hypot(R.cx[n] - R.cx[n - w], R.cy[n] - R.cy[n - w], R.cz[n] - R.cz[n - w]) / w;
+}
+function step(R, until, fo, ci) {          // advance the sampled sensor to run time `until`
+  while (R.k * DT <= until + 1e-9) {        // next 20 Hz sample index is kept in the run, so no sample is skipped or repeated
+    const t = R.k * DT, g = gravityAt(t, fo, ci);
+    R.acc[0] += g[0]; R.acc[1] += g[1]; R.acc[2] += g[2]; R.acc[3]++;
+    const c = covCell(g); if (!R.cov[c]) { R.cov[c] = 1; R.covN++; }
+    R.trace.push([t, g[0], g[1], g[2]]); if (R.trace.length > 8000) R.trace.splice(0, 4000);
+    R.k++;
+    if (R.k % HZ === 0) {                     // close one second: store its mean in running sums
+      const m = R.acc[3], n = R.cx.length - 1;
+      R.cx.push(R.cx[n] + R.acc[0] / m); R.cy.push(R.cy[n] + R.acc[1] / m); R.cz.push(R.cz[n] + R.acc[2] / m);
+      R.acc = [0, 0, 0, 0]; R.sec++;
+      R.w15.push(winMag(R, 900)); R.w60.push(winMag(R, 3600));
+    }
+  }
+  R.t = until;
+}
+window.__sim = { gravityAt, newRun, step, winMag };
+// Self-check of the axis mapping: gravity from the actual 3D pose (world up seen in the core's sensor axes) must equal Eq. 1.
+(function check() {
+  const S = [[0, 1, 0], [0, 0, -1], [-1, 0, 0]];              // sensor x, y, z in core-local axes
+  let worst = 0;
+  for (const [f, c] of [[3.875, 1.5], [-2.2, 0.7], [1, -2]]) for (let t = 0; t < 200; t += 7.3) {
+    const [a, b] = poseAt(t, f, c), ca = Math.cos(a), sa = Math.sin(a), cb = Math.cos(b), sb = Math.sin(b);
+    // Rz(a)·Rx(b) applied to a core-local vector v gives world; world up (0,1,0) in core-local is the transpose applied to (0,1,0):
+    const local = [sa, ca * cb, -ca * sb];   // (Rz(a)·Rx(b))ᵀ · (0,1,0): world up expressed in core-local axes
+    const g = S.map(row => row[0] * local[0] + row[1] * local[1] + row[2] * local[2]), e = gravityAt(t, f, c);
+    worst = Math.max(worst, ...g.map((v, i) => Math.abs(v - e[i])));
+  }
+  console[worst < 1e-9 ? 'info' : 'error']('[sim] pose vs Eq. 1 max difference', worst.toExponential(2));
+})();   // exposed for checking against the analysis tool
+
+// ---------- state & controls ----------
+// Speeds as set on the instrument (0 or 0.050–5.000 rpm) and a direction per axis, as seen from that axis's motor end.
+// In the model the frame's motor end is its +Z end and the core's motor end is its −X end (from the CAD), so:
+// frame clockwise = negative rotation about Z; core clockwise = positive rotation about X.
+let spF = 3.875, spC = 1.5, cwF = true, cwC = true;
+let fo = -spF, ci = spC, mult = 1, playing = !matchMedia('(prefers-reduced-motion: reduce)').matches, R = newRun();
+const fmt = v => (v >= 0 ? '+' : '−') + Math.abs(v).toFixed(3);
+const fmtE = v => v == null ? '—' : v < 1e-6 ? '< 10⁻⁶' : v < 1e-3 ? (v * 1e3).toFixed(2) + ' × 10⁻³' : v.toFixed(4);
+const HINT = '0.050–5.000 rpm per axis in 0.001 rpm steps; 0 holds the axis still. Direction is as seen from the axis\'s motor end.';
+const valid = v => v === 0 || (v >= 0.05 && v <= 5);
+const showSpeed = (id, v) => { $(id).value = v.toFixed(3); $(id + 'R').value = v; };
+function applySpeeds(f, c) {
+  f = Math.round(Math.abs(f) * 1000) / 1000; c = Math.round(Math.abs(c) * 1000) / 1000;
+  const ok = valid(f) && valid(c);
+  $('spdHint').classList.toggle('warn', !ok);
+  $('spdHint').textContent = ok ? HINT : 'Each axis runs at 0.050–5.000 rpm, or 0 to hold it still; the instrument will not accept this value.';
+  showSpeed('fr', f); showSpeed('cr', c);
+  if (!ok) return;
+  spF = f; spC = c; restart();
+}
+function restart() { fo = (cwF ? -1 : 1) * spF; ci = (cwC ? 1 : -1) * spC; R = newRun(); }
+for (const id of ['fr', 'cr']) $(id).addEventListener('change', () => applySpeeds(+$('fr').value, +$('cr').value));
+for (const id of ['frR', 'crR']) {
+  $(id).addEventListener('input', () => { $(id.slice(0, 2)).value = (+$(id).value).toFixed(3); });   // live number while dragging
+  $(id).addEventListener('change', () => applySpeeds(+$('frR').value, +$('crR').value));           // apply on release
+}
+for (const [box, key] of [['dirF', 'cwF'], ['dirC', 'cwC']]) document.querySelectorAll('#' + box + ' button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#' + box + ' button').forEach(x => x.setAttribute('aria-pressed', x === b));
+  if (key === 'cwF') cwF = b.dataset.d === 'cw'; else cwC = b.dataset.d === 'cw'; restart();
+}));
+document.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => applySpeeds(+b.dataset.f, +b.dataset.c)));
+document.querySelectorAll('#speed button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('#speed button').forEach(x => x.setAttribute('aria-pressed', x === b)); mult = +b.dataset.x;
+}));
+$('play').textContent = playing ? 'Pause' : 'Play';
+$('play').addEventListener('click', () => { playing = !playing; $('play').textContent = playing ? 'Pause' : 'Play'; });
+$('reset').addEventListener('click', () => { R = newRun(); });
+showSpeed('fr', spF); showSpeed('cr', spC);
+
+// ---------- charts ----------
+function prep(cv) {
+  const r = cv.getBoundingClientRect(), d = Math.min(devicePixelRatio, 2);
+  if (cv.width !== Math.round(r.width * d) || cv.height !== Math.round(r.height * d)) { cv.width = Math.round(r.width * d); cv.height = Math.round(r.height * d); }
+  const ctx = cv.getContext('2d'); ctx.setTransform(d, 0, 0, d, 0, 0); ctx.clearRect(0, 0, r.width, r.height);
+  ctx.font = '11px ' + css('--mono'); return [ctx, r.width, r.height];
+}
+function drawTrace() {
+  const [ctx, W, H] = prep($('cTrace')), L = 34, B = 18, T = 6, pw = W - L - 6, ph = H - T - B;
+  const span = mult === 1 ? 60 : mult === 10 ? 120 : 200;   // run-time seconds shown (limited by the 20 Hz buffer)
+  $('traceCap').textContent = 'Last ' + span + ' s of run time, sampled at 20 Hz.';
+  const t1 = R.t, t0 = t1 - span, y = v => T + (1 - (v + 1) / 2) * ph, x = t => L + (t - t0) / span * pw;
+  ctx.strokeStyle = css('--line'); ctx.fillStyle = css('--muted'); ctx.lineWidth = 1;
+  for (const v of [-1, -0.5, 0, 0.5, 1]) { ctx.beginPath(); ctx.moveTo(L, y(v)); ctx.lineTo(L + pw, y(v)); ctx.stroke(); ctx.fillText((v > 0 ? '+' : '') + v, 2, y(v) + 4); }
+  ctx.fillText('−' + span + ' s', L, H - 4); ctx.fillText('now', L + pw - 22, H - 4);
+  for (const [i, col] of [[1, '--ax-x'], [2, '--ax-y'], [3, '--ax-z']]) {
+    ctx.strokeStyle = css(col); ctx.lineWidth = 1.4; ctx.beginPath(); let started = false;
+    for (const s of R.trace) { if (s[0] < t0) continue; const X = x(s[0]), Y = y(s[i]); if (!started) { ctx.moveTo(X, Y); started = true; } else ctx.lineTo(X, Y); }
+    ctx.stroke();
+  }
+}
+function drawAvg() {
+  const [ctx, W, H] = prep($('cAvg')), L = 40, B = 18, T = 6, pw = W - L - 6, ph = H - T - B;
+  const lo = -5, hi = 0, y = v => T + (1 - (Math.log10(Math.max(v, 1e-5)) - lo) / (hi - lo)) * ph;
+  const n = R.w15.length, span = Math.max(3600, n), x = i => L + i / span * pw;
+  ctx.strokeStyle = css('--line'); ctx.fillStyle = css('--muted'); ctx.lineWidth = 1;
+  for (let e = lo; e <= hi; e++) { const Y = y(10 ** e); ctx.beginPath(); ctx.moveTo(L, Y); ctx.lineTo(L + pw, Y); ctx.stroke(); ctx.fillText('1e' + e, 2, Y + 4); }
+  ctx.setLineDash([4, 4]); ctx.strokeStyle = css('--ref'); ctx.beginPath(); ctx.moveTo(L, y(1e-3)); ctx.lineTo(L + pw, y(1e-3)); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillText('0', L, H - 4); const hrs = span / 3600; ctx.fillText((hrs >= 1 ? hrs.toFixed(hrs < 10 ? 1 : 0) + ' h' : Math.round(span / 60) + ' min'), L + pw - 34, H - 4);
+  const stepN = Math.max(1, Math.floor(n / pw));
+  for (const [arr, col] of [[R.w15, '--w15'], [R.w60, '--w60']]) {
+    ctx.strokeStyle = css(col); ctx.lineWidth = 1.6; ctx.beginPath(); let started = false;
+    for (let i = 0; i < n; i += stepN) { const v = arr[i]; if (v == null) continue; const X = x(i), Y = y(v); if (!started) { ctx.moveTo(X, Y); started = true; } else ctx.lineTo(X, Y); }
+    ctx.stroke();
+  }
+}
+
+function drawSphere() {
+  const cv = $('cSphere'), r0 = cv.getBoundingClientRect(), d = Math.min(devicePixelRatio, 2);
+  if (cv.width !== Math.round(r0.width * d) || cv.height !== Math.round(r0.height * d)) { cv.width = Math.round(r0.width * d); cv.height = Math.round(r0.height * d); }
+  const ctx = cv.getContext('2d'), W = r0.width, H = r0.height; ctx.setTransform(d, 0, 0, d, 0, 0); ctx.clearRect(0, 0, W, H);
+  const rad = Math.min(W / 4.4, (H - 26) / 2.15), C = [[W * 0.27, 14 + (H - 14) / 2], [W * 0.73, 14 + (H - 14) / 2]];
+  ctx.font = '11px ' + css('--mono'); ctx.fillStyle = css('--muted'); ctx.textAlign = 'center';
+  ctx.fillText('front (+z)', C[0][0], 11); ctx.fillText('back (−z)', C[1][0], 11); ctx.textAlign = 'left';
+  const proj = (x, y, z) => { const [X, Y] = C[z >= 0 ? 0 : 1]; return [X + rad * x, Y - rad * y]; };
+  const pt = (z, lon) => { const q = Math.sqrt(Math.max(0, 1 - z * z)); return [q * Math.cos(lon), q * Math.sin(lon), z]; };
+  // visited cells
+  ctx.fillStyle = css('--accent'); ctx.globalAlpha = 0.28;
+  for (let c = 0; c < 288; c++) {
+    if (!R.cov[c]) continue;
+    const b = Math.floor(c / 24), l = c % 24, z0 = -1 + b / 6, z1 = -1 + (b + 1) / 6, a0 = l * Math.PI / 12, a1 = (l + 1) * Math.PI / 12;
+    const zc = (z0 + z1) / 2, side = zc >= 0 ? 1 : -1, P = [];
+    for (let k = 0; k <= 4; k++) P.push(pt(z0, a0 + (a1 - a0) * k / 4));
+    for (let k = 0; k <= 4; k++) P.push(pt(z1, a1 - (a1 - a0) * k / 4));
+    ctx.beginPath(); P.forEach((p, i) => { const [X, Y] = proj(p[0], p[1], side * Math.abs(p[2]) || side * 1e-9); i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y); }); ctx.closePath(); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  // outlines and axes
+  for (const [X, Y] of C) {
+    ctx.strokeStyle = css('--line-strong'); ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(X, Y, rad, 0, 2 * Math.PI); ctx.stroke();
+    ctx.strokeStyle = css('--line'); ctx.beginPath(); ctx.moveTo(X - rad, Y); ctx.lineTo(X + rad, Y); ctx.moveTo(X, Y - rad); ctx.lineTo(X, Y + rad); ctx.stroke();
+    ctx.fillStyle = css('--ax-x'); ctx.fillText('+x', X + rad + 4, Y + 4); ctx.fillStyle = css('--ax-y'); ctx.fillText('+y', X - 6, Y - rad - 4);
+  }
+  // trail of the last 30 s and the current direction
+  const t0 = R.t - 30; ctx.strokeStyle = css('--heading'); ctx.lineWidth = 1.3; let prev = null;
+  for (const s of R.trace) {
+    if (s[0] < t0) continue; const side = s[3] >= 0;
+    const [X, Y] = proj(s[1], s[2], s[3]);
+    if (prev && prev[2] === side) { ctx.beginPath(); ctx.moveTo(prev[0], prev[1]); ctx.lineTo(X, Y); ctx.stroke(); }
+    prev = [X, Y, side];
+  }
+  const g = gravityAt(R.t, fo, ci), [X, Y] = proj(g[0], g[1], g[2]);
+  ctx.fillStyle = css('--ax-x'); ctx.beginPath(); ctx.arc(X, Y, 4, 0, 2 * Math.PI); ctx.fill();
+  $('covHead').textContent = (R.covN / 288 * 100).toFixed(0) + ' % of cells';
+}
+
+// ---------- 3D ----------
+const stage = $('stage');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2)); stage.appendChild(renderer.domElement);
+const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(22, 1, 0.01, 20);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableZoom = false; controls.enablePan = false; controls.enableDamping = true; controls.minPolarAngle = 0.35; controls.maxPolarAngle = 1.75;
+const hullMat = new THREE.ShaderMaterial({ side: THREE.BackSide,
+  uniforms: { color: { value: new THREE.Color() }, px: { value: 1.2 }, res: { value: new THREE.Vector2(1, 1) } },
+  vertexShader: `uniform float px; uniform vec2 res; void main(){ vec4 c = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+    vec3 n = normalize(normalMatrix * normal); vec2 d = normalize((projectionMatrix * vec4(n,0.0)).xy + 1e-6); c.xy += d * px * 2.0 / res * c.w; gl_Position = c; }`,
+  fragmentShader: `uniform vec3 color; void main(){ gl_FragColor = vec4(color,1.0); }` });
+const lineMat = new LineMaterial({ linewidth: 1.0, worldUnits: false, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -4 });
+const fill = { base: new THREE.MeshBasicMaterial(), frame: new THREE.MeshBasicMaterial(), chamber: new THREE.MeshBasicMaterial() };
+for (const m of Object.values(fill)) { m.polygonOffset = true; m.polygonOffsetFactor = 2; m.polygonOffsetUnits = 8; }
+const pivotO = new THREE.Group(), pivotI = new THREE.Group();
+function theme() {
+  const ink = new THREE.Color(css('--draw')); hullMat.uniforms.color.value.copy(ink); lineMat.color.copy(ink);
+  fill.base.color.set(css('--draw-fill')); fill.frame.color.set(css('--tint-frame')); fill.chamber.color.set(css('--tint-core'));
+}
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', theme);
+new MutationObserver(theme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load('/assets/3d/scispinner-max.glb', gltf => {
+  // Decimated fill plus outline edges baked into the file (from the full-resolution part), so nothing is computed here.
+  const groups = {}; for (const n of ['base', 'frame', 'chamber']) { groups[n] = gltf.scene.getObjectByName(n); groups[n].add(gltf.scene.getObjectByName(n + '_lines')); }
+  scene.add(groups.base, pivotO); pivotO.add(groups.frame, pivotI); pivotI.add(groups.chamber);
+  for (const n of ['base', 'frame', 'chamber']) {
+    const meshes = [], lines = []; groups[n].traverse(o => { if (o.isMesh) meshes.push(o); else if (o.isLineSegments) lines.push(o); });
+    for (const m of meshes) { m.material = fill[n]; if (!m.geometry.attributes.normal) m.geometry.computeVertexNormals(); m.add(new THREE.Mesh(m.geometry, hullMat)); }
+    for (const l of lines) {
+      const pos = l.geometry.attributes.position, arr = new Float32Array(pos.count * 3);
+      for (let i = 0; i < pos.count; i++) { arr[3 * i] = pos.getX(i); arr[3 * i + 1] = pos.getY(i); arr[3 * i + 2] = pos.getZ(i); }
+      const fat = new LineSegments2(new LineSegmentsGeometry().setPositions(arr), lineMat);
+      fat.position.copy(l.position); fat.quaternion.copy(l.quaternion); fat.scale.copy(l.scale); l.parent.add(fat); l.removeFromParent();
+    }
+  }
+  theme();
+  const box = new THREE.Box3().setFromObject(scene), c = box.getCenter(new THREE.Vector3()), r = box.getBoundingSphere(new THREE.Sphere()).radius;
+  const dist = r / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) * 0.82, az = 0.61, el = 0.35;
+  camera.position.set(c.x + Math.sin(az) * Math.cos(el) * dist, c.y + Math.sin(el) * dist, c.z + Math.cos(az) * Math.cos(el) * dist);
+  camera.near = Math.max(0.01, dist - r * 1.6); camera.far = dist + r * 1.6; controls.target.copy(c); controls.update();
+  $('loading').hidden = true; resize();
+}, undefined, () => { $('loading').textContent = 'The model could not be loaded.'; });
+
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight; if (!w || !h) return;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+  const pr = renderer.getPixelRatio(); hullMat.uniforms.res.value.set(w * pr, h * pr); lineMat.resolution.set(w * pr, h * pr);
+}
+new ResizeObserver(resize).observe(stage);
+
+// ---------- loop ----------
+const deg = a => ((a * 180 / Math.PI) % 360 + 360) % 360;
+const hms = s => [s / 3600, s / 60 % 60, s % 60].map(v => String(Math.floor(v)).padStart(2, '0')).join(':');
+let last = performance.now(), lastUi = 0;
+renderer.setAnimationLoop(now => {
+  const dt = Math.min((now - last) / 1000, 0.1); last = now;
+  if (playing && !document.hidden) step(R, R.t + dt * mult, fo, ci);
+  const [a, b] = poseAt(R.t, fo, ci); pivotO.rotation.z = a; pivotI.rotation.x = b;
+  controls.update(); renderer.render(scene, camera);
+  if (now - lastUi > 100) {
+    lastUi = now; const g = gravityAt(R.t, fo, ci);
+    $('ax').textContent = fmt(g[0]); $('ay').textContent = fmt(g[1]); $('az').textContent = fmt(g[2]);
+    $('g2').textContent = fmtE(winMag(R, 120)); $('g15').textContent = fmtE(winMag(R, 900)); $('g60').textContent = fmtE(winMag(R, 3600));
+    $('gRun').textContent = R.sec ? fmtE(winMag(R, R.sec)) : '—'; $('cov').textContent = (R.covN / 288 * 100).toFixed(0) + ' %';
+    $('clock').textContent = hms(R.t); $('angles').textContent = `frame ${deg(spF * RPM * R.t).toFixed(0)}° ${cwF ? 'cw' : 'ccw'} · core ${deg(spC * RPM * R.t).toFixed(0)}° ${cwC ? 'cw' : 'ccw'}`;
+    drawTrace(); drawAvg(); drawSphere();
+  }
+});
+</script>
+</body>
+</html>
