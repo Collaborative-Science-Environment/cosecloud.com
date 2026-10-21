@@ -32,19 +32,8 @@ PAGES = {
 }
 
 def map_block():
-    """The world map for wide screens, plus two regional crops of the same SVG that take its place on phones,
-    where the whole world is too small to read and the US dots merge into one blob."""
-    svg = (ROOT / "src" / "_map.svg").read_text()
-    def crop(view, cls, label):
-        return (svg.replace('class="worldmap"', f'class="worldmap {cls}"', 1)
-                   .replace('viewBox="0 0 1000 440"', f'viewBox="{view}"', 1)
-                   .replace('id="mapclip"', f'id="mapclip-{cls}"', 1).replace('url(#mapclip)', f'url(#mapclip-{cls})', 1)
-                   .replace('aria-label="World map showing', f'aria-label="{label}: map showing', 1))
-    return (svg.replace('class="worldmap"', 'class="worldmap map-world"', 1)
-            + '<div class="map-regions">'
-            + '<figure class="map-region"><figcaption>United States</figcaption>' + crop("98 92 206 108", "map-us", "United States") + '</figure>'
-            + '<figure class="map-region"><figcaption>India</figcaption>' + crop("625 165 120 100", "map-in", "India") + '</figure>'
-            + '</div>')
+    """One world map; the page's script zooms it (region buttons, pinch, drag) so phones can read the US cluster."""
+    return (ROOT / "src" / "_map.svg").read_text()
 
 def page(name, meta, skeleton=True, body=None):
     if body is None:

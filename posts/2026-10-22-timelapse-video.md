@@ -2,6 +2,7 @@ title: Time-lapse to video tool
 date: 2026-10-22
 author: Jerry Miao
 summary: A browser tool that turns the stills in a run's timelapse folder into an MP4 with an elapsed-time overlay, using the interval and start time from the run's experiment.json.
+tag: tools
 
 The [Tools page](/tools/) has a new entry: [time-lapse to video](/tools/timelapse-video).
 

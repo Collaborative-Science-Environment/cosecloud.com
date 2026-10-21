@@ -76,6 +76,10 @@
     <div class="map-wrap">
       {MAP}
       <div class="map-tip" id="map-tip" role="status" aria-live="polite" hidden></div>
+      <div class="map-ctl" aria-label="Map view">
+        <div class="map-views"><button type="button" data-view="world" aria-pressed="true">World</button><button type="button" data-view="us" aria-pressed="false">United States</button><button type="button" data-view="in" aria-pressed="false">India</button></div>
+        <div class="map-zoom"><button type="button" data-zoom="in" aria-label="Zoom in">+</button><button type="button" data-zoom="out" aria-label="Zoom out">&minus;</button></div>
+      </div>
     </div>
     <div class="map-figures">
       <div class="figure"><span class="val">20</span><span class="lab">laboratories</span></div>
@@ -122,8 +126,8 @@
 </main>
 <script>
 (function(){
-  var wrap=document.querySelector('.map-wrap'), tip=document.getElementById('map-tip');
-  if(!wrap||!tip) return;
+  var wrap=document.querySelector('.map-wrap'), tip=document.getElementById('map-tip'), svg=wrap&&wrap.querySelector('svg.worldmap');
+  if(!wrap||!tip||!svg) return;
   var dots=wrap.querySelectorAll('circle[data-label]');
   function show(c){
     var r=c.getBoundingClientRect(), w=wrap.getBoundingClientRect();
@@ -141,5 +145,67 @@
     c.addEventListener('click',function(e){e.stopPropagation();show(c);});
   });
   document.addEventListener('click',hide);
+
+  /* One map, zoomed by changing its viewBox: region buttons, +/-, pinch, drag and double-tap.
+     Dot size follows --upx (map units per pixel) so the dots stay the same size on screen at any zoom or screen width. */
+  var W=1000, H=440, FULL=[0,0,W,H];
+  var VIEWS={world:FULL, us:[78,92,245,107.8], 'in':[570,164,230,101.2]};   // same 1000:440 shape as the whole map, so the box never changes height
+  var vb=FULL.slice(), anim=null;
+  function apply(){
+    svg.setAttribute('viewBox', vb.map(function(v){return v.toFixed(2);}).join(' '));
+    var z=W/vb[2]; wrap.classList.toggle('is-zoomed', z>1.02);
+    svg.style.setProperty('--upx', (vb[2]/(svg.getBoundingClientRect().width||1)).toFixed(4));   // map units per screen pixel: dots keep a fixed size on screen
+    var which=Object.keys(VIEWS).find(function(k){var t=VIEWS[k]; return Math.abs(t[0]-vb[0])<1&&Math.abs(t[2]-vb[2])<1;});
+    wrap.querySelectorAll('[data-view]').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.view===which)); });
+    hide();
+  }
+  function clampView(v){
+    var w=Math.min(W, Math.max(W/12, v[2])), h=w*H/W;
+    return [Math.min(W-w, Math.max(0, v[0])), Math.min(H-h, Math.max(0, v[1])), w, h];
+  }
+  function go(target, instant){
+    target=clampView(target); if(anim) cancelAnimationFrame(anim);
+    if(instant||matchMedia('(prefers-reduced-motion: reduce)').matches){ vb=target; apply(); return; }
+    var from=vb.slice(), t0=performance.now(), D=380;
+    (function step(now){
+      var k=Math.min(1,(now-t0)/D); k=1-Math.pow(1-k,3);
+      vb=from.map(function(a,i){return a+(target[i]-a)*k;}); apply();
+      if(k<1) anim=requestAnimationFrame(step); else anim=null;
+    })(t0);
+  }
+  function zoomAt(f, px, py){           // keep the map point under (px,py) fixed
+    var r=svg.getBoundingClientRect(), mx=vb[0]+(px-r.left)/r.width*vb[2], my=vb[1]+(py-r.top)/r.height*vb[3];
+    var w=vb[2]/f, h=vb[3]/f; go([mx-(mx-vb[0])/f, my-(my-vb[1])/f, w, h]);
+  }
+  wrap.querySelectorAll('[data-view]').forEach(function(b){ b.addEventListener('click',function(){ go(VIEWS[b.dataset.view]); }); });
+  wrap.querySelectorAll('[data-zoom]').forEach(function(b){ b.addEventListener('click',function(){
+    var r=svg.getBoundingClientRect(); zoomAt(b.dataset.zoom==='in'?1.8:1/1.8, r.left+r.width/2, r.top+r.height/2); }); });
+  svg.addEventListener('dblclick',function(e){ e.preventDefault(); zoomAt(vb[2]<=W/8?W/vb[2]:2.2, e.clientX, e.clientY); });
+  // pointer handling: one finger/mouse drags when zoomed; two fingers pinch (and pan with the midpoint)
+  var pts=new Map(), last=null, moved=false;
+  svg.addEventListener('pointerdown',function(e){ if(e.target.tagName==='circle'&&pts.size===0&&!wrap.classList.contains('is-zoomed')) return;
+    pts.set(e.pointerId,[e.clientX,e.clientY]); svg.setPointerCapture(e.pointerId); last=null; moved=false; });
+  svg.addEventListener('pointermove',function(e){
+    if(!pts.has(e.pointerId)) return; pts.set(e.pointerId,[e.clientX,e.clientY]);
+    var r=svg.getBoundingClientRect(), p=Array.from(pts.values());
+    if(p.length===1){
+      if(!wrap.classList.contains('is-zoomed')) return;
+      if(last){ var dx=(p[0][0]-last[0])/r.width*vb[2], dy=(p[0][1]-last[1])/r.height*vb[3]; if(Math.abs(p[0][0]-last[0])+Math.abs(p[0][1]-last[1])>2) moved=true;
+        vb=clampView([vb[0]-dx, vb[1]-dy, vb[2], vb[3]]); apply(); }
+      last=p[0].slice();
+    } else if(p.length>=2){
+      var cx=(p[0][0]+p[1][0])/2, cy=(p[0][1]+p[1][1])/2, d=Math.hypot(p[0][0]-p[1][0], p[0][1]-p[1][1]);
+      if(last&&last.length===3){ var f=d/last[2]; var mx=vb[0]+(cx-r.left)/r.width*vb[2], my=vb[1]+(cy-r.top)/r.height*vb[3];
+        var nw=vb[2]/f, nh=vb[3]/f, nx=mx-(mx-vb[0])/f, ny=my-(my-vb[1])/f;
+        nx-=(cx-last[0])/r.width*nw; ny-=(cy-last[1])/r.height*nh;
+        vb=clampView([nx,ny,nw,nh]); apply(); moved=true; }
+      last=[cx,cy,d];
+    }
+  });
+  function up(e){ pts.delete(e.pointerId); last=null; if(moved){ var h=function(ev){ev.stopPropagation(); ev.preventDefault(); svg.removeEventListener('click',h,true);}; svg.addEventListener('click',h,true); setTimeout(function(){svg.removeEventListener('click',h,true);},0); } }
+  svg.addEventListener('pointerup',up); svg.addEventListener('pointercancel',up);
+  // phones start on the United States, where most of the dots are; the buttons go anywhere else
+  if(matchMedia('(max-width: 700px)').matches) go(VIEWS.us, true); else apply();
+  if(window.ResizeObserver) new ResizeObserver(apply).observe(svg);
 })();
 </script>

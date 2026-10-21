@@ -2,6 +2,7 @@ title: Clinostat simulator added to the Tools page
 date: 2026-10-20
 author: Jerry Miao
 summary: A browser-based simulator of the SciSpinner Max: set the frame and core speeds, watch the instrument turn, and see the motion sensor reading, time-averaged ⟨g⟩ and sphere coverage before a run.
+tag: tools
 
 A second tool is now on the [Tools page](/tools/): a [clinostat simulator](/tools/clinostat-simulator) for the SciSpinner Max.
 

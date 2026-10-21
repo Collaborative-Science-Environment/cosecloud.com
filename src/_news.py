@@ -86,6 +86,14 @@ def md_to_html(text):
     return "\n".join(out)
 
 
+# One tag per post (the 'tag:' header line); the News page can filter by it. 'pinned: yes' keeps a post at the top.
+TAGS = {"software": "Software", "tools": "Tools", "history": "History", "events": "Events", "company": "Company"}
+
+
+def tag_html(p):
+    return f'<span class="tag tag-{p["tag"]}">{TAGS[p["tag"]]}</span>' if p.get("tag") else ""
+
+
 def load_posts(root):
     posts = []
     for f in sorted((root / "posts").glob("*.md")):
@@ -99,10 +107,14 @@ def load_posts(root):
             raise SystemExit(f"{f.name}: needs 'title:' and 'date:' header lines")
         slug = re.sub(r"^\d{4}-\d{2}-\d{2}-", "", f.stem)
         date = datetime.strptime(meta["date"], "%Y-%m-%d")
+        tag = meta.get("tag", "").strip().lower()
+        if tag and tag not in TAGS:
+            raise SystemExit(f"{f.name}: unknown tag '{tag}' (one of {', '.join(TAGS)})")
         posts.append(dict(slug=slug, title=meta["title"], date=date, summary=meta.get("summary", ""),
-                          author=meta.get("author", "Jerry Miao"),
+                          author=meta.get("author", "Jerry Miao"), tag=tag,
+                          pinned=meta.get("pinned", "").strip().lower() in ("yes", "true", "1"),
                           html=md_to_html(body.strip()), url=f"/news/{slug}"))
-    posts.sort(key=lambda p: p["date"], reverse=True)
+    posts.sort(key=lambda p: (p["pinned"], p["date"]), reverse=True)   # pinned first, then newest
     return posts
 
 
@@ -114,7 +126,7 @@ def post_body(p):
     return f"""<main>
 <article class="post">
   <div class="wrap">
-    <p class="eyebrow"><a href="/news/">News</a> &middot; <time datetime="{p['date']:%Y-%m-%d}">{fmt_date(p['date'])}</time> &middot; {_html.escape(p['author'])}</p>
+    <p class="eyebrow"><a href="/news/">News</a> &middot; <time datetime="{p['date']:%Y-%m-%d}">{fmt_date(p['date'])}</time> &middot; {_html.escape(p['author'])}{' &middot; ' + tag_html(p) if p.get('tag') else ''}</p>
     <h1>{_html.escape(p['title'])}</h1>
     {f'<p class="lede">{_inline(p["summary"])}</p>' if p['summary'] else ''}
     <div class="post-body">
@@ -129,8 +141,8 @@ def post_body(p):
 
 def list_items(posts, cls="post-list"):
     items = "".join(
-        f'<li><time datetime="{p["date"]:%Y-%m-%d}">{fmt_date(p["date"])}</time>'
-        f'<div><h3><a href="{p["url"]}">{_html.escape(p["title"])}</a></h3>'
+        f'<li data-tag="{p["tag"]}"{" class=pinned" if p["pinned"] else ""}><time datetime="{p["date"]:%Y-%m-%d}">{"<span class=pin>Pinned</span>" if p["pinned"] else ""}{fmt_date(p["date"])}</time>'
+        f'<div><h3><a href="{p["url"]}">{_html.escape(p["title"])}</a>{tag_html(p)}</h3>'
         + (f'<p>{_inline(p["summary"])}</p>' if p["summary"] else "") + '</div></li>'
         for p in posts)
     return f'<ul class="{cls}">{items}</ul>'
@@ -149,10 +161,22 @@ def index_body(posts):
 </section>
 <section id="news-list" style="border-top:0;padding-top:1rem">
   <div class="wrap">
+    <div class="tag-filter" role="group" aria-label="Filter by type"><button type="button" data-filter="" aria-pressed="true">All</button>{''.join(f'<button type="button" data-filter="{k}" aria-pressed="false">{v}</button>' for k, v in TAGS.items() if any(p.get("tag") == k for p in posts))}</div>
     {list_items(posts)}
   </div>
 </section>
 </main>
+<script>
+(function(){{
+  var f=document.querySelector('.tag-filter'); if(!f) return;
+  var items=document.querySelectorAll('.post-list > li');
+  function set(tag){{ f.querySelectorAll('button').forEach(function(b){{ b.setAttribute('aria-pressed', String(b.dataset.filter===tag)); }});
+    items.forEach(function(li){{ li.hidden = !!tag && li.dataset.tag!==tag; }});
+    if(history.replaceState) history.replaceState(null, '', tag ? '#'+tag : location.pathname); }}
+  f.addEventListener('click', function(e){{ var b=e.target.closest('button'); if(b) set(b.dataset.filter); }});
+  var h=location.hash.slice(1); if(h && f.querySelector('[data-filter="'+h+'"]')) set(h);
+}})();
+</script>
 """
 
 
@@ -183,7 +207,7 @@ def feed(posts):
     <guid>{SITE}{p['url']}</guid>
     <pubDate>{p['date'].strftime('%a, %d %b %Y 12:00:00 +0000')}</pubDate>
     <description>{_html.escape(p['summary'] or p['title'])}</description>
-  </item>""" for p in posts)
+  </item>""" for p in sorted(posts, key=lambda p: p["date"], reverse=True))   # the feed is by date; pinning is a page thing
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"><channel>
   <title>COSE news</title>

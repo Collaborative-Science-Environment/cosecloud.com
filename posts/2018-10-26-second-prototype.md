@@ -2,6 +2,7 @@ title: The second prototype
 date: 2018-10-26
 author: Jerry Miao
 summary: Eighteen months after the first bench rig: a sealed spherical chamber with a camera and LED ring inside, a motor on each axis, and a touchscreen controller. Built for the Gilroy lab at UW–Madison, before the company existed.
+tag: history
 
 ![The second prototype with the core open: the LED ring around the aperture and a Raspberry Pi Zero with its camera inside the chamber](/assets/news/prototype-2018-core.jpg)
 
