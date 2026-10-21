@@ -199,6 +199,9 @@ section + section { border-top: 1px solid var(--line); }
 .post-body blockquote { margin: 0; padding-left: 1.25rem; border-left: 3px solid var(--accent); color: var(--ink-2); }
 .post-body code { font-family: var(--mono); font-size: .92em; }
 .post-body hr { border: 0; border-top: 1px solid var(--line); }
+.post-body .post-video { margin: .5rem 0; display: grid; gap: .5rem; }
+.post-body .post-video video { width: 100%; height: auto; display: block; border-radius: var(--radius); border: 1px solid var(--line); background: #000; }
+.post-body .post-video figcaption { font-size: .85rem; color: var(--muted); }
 .post-foot { margin-top: 3rem; }
 
 /* ---- key figures strip ---- */
@@ -351,6 +354,17 @@ a.product:hover .more { text-decoration: underline; }
 @media (max-width: 560px) { .map-figures { grid-template-columns: repeat(2, 1fr); } .map-figures .figure:nth-child(2) { border-right: 0; } .map-figures .figure:nth-child(3) { border-right: 1px solid var(--line); } }
 
 .map-wrap { position: relative; }
+/* Phones get two regional crops instead of the world map, with bigger dots to tap */
+.map-regions { display: none; }
+@media (max-width: 700px) {
+  .map-world { display: none; }
+  .map-regions { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr); gap: .75rem; }
+  .map-region { margin: 0; min-width: 0; }
+  .map-region figcaption { font-family: var(--mono); font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: .35rem; }
+  .map-us .site circle, .map-in .site circle { r: 3.2; stroke-width: 1; }
+  .map-us .home circle, .map-in .home circle { r: 4.2; stroke-width: 1.2; }
+  .map-us .site circle:hover, .map-in .site circle:hover { r: 4.5; }
+}
 .worldmap circle { cursor: pointer; outline: none; }
 .worldmap circle:focus-visible { stroke: var(--accent); stroke-width: 3; }
 .map-tip { position: absolute; transform: translate(-50%, -100%); background: var(--teal); color: #fff; font-size: .82rem; line-height: 1.3; padding: .4rem .65rem; border-radius: var(--radius); white-space: nowrap; pointer-events: none; box-shadow: var(--shadow); z-index: 2; }

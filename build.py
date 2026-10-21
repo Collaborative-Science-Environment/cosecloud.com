@@ -21,7 +21,7 @@ PAGES = {
                            description="Two independent axes, 167 mm sample chamber, onboard camera, lighting and sensors, measured time-averaged gravity. Full specifications for the SciSpinner Max clinostat.",
                            current="product"),
     "tools": dict(title="Tools — COSE",
-                  description="Browser-based tools for SciSpinner data: g-level analysis of motion-sensor logs and a clinostat simulator. Everything runs locally; nothing is uploaded.",
+                  description="Browser-based tools for SciSpinner data: g-level analysis of motion-sensor logs, a clinostat simulator, a run-setup tool that writes the instrument's configuration file, and a time-lapse to video converter. Everything runs locally; nothing is uploaded.",
                   current="tools", out="tools/index.html"),
     "accessories": dict(title="Accessories and parts — COSE",
                         description="Spare Control Modules, extended cables, sample inserts and replacement parts for the SciSpinner Max, with US list prices.",
@@ -31,11 +31,26 @@ PAGES = {
                      current="founders"),
 }
 
+def map_block():
+    """The world map for wide screens, plus two regional crops of the same SVG that take its place on phones,
+    where the whole world is too small to read and the US dots merge into one blob."""
+    svg = (ROOT / "src" / "_map.svg").read_text()
+    def crop(view, cls, label):
+        return (svg.replace('class="worldmap"', f'class="worldmap {cls}"', 1)
+                   .replace('viewBox="0 0 1000 440"', f'viewBox="{view}"', 1)
+                   .replace('id="mapclip"', f'id="mapclip-{cls}"', 1).replace('url(#mapclip)', f'url(#mapclip-{cls})', 1)
+                   .replace('aria-label="World map showing', f'aria-label="{label}: map showing', 1))
+    return (svg.replace('class="worldmap"', 'class="worldmap map-world"', 1)
+            + '<div class="map-regions">'
+            + '<figure class="map-region"><figcaption>United States</figcaption>' + crop("98 92 206 108", "map-us", "United States") + '</figure>'
+            + '<figure class="map-region"><figcaption>India</figcaption>' + crop("625 165 120 100", "map-in", "India") + '</figure>'
+            + '</div>')
+
 def page(name, meta, skeleton=True, body=None):
     if body is None:
         body = (ROOT / "src" / f"{name}.body.html").read_text()
     if "{MAP}" in body:
-        body = body.replace("{MAP}", (ROOT / "src" / "_map.svg").read_text())
+        body = body.replace("{MAP}", map_block())
     if "{NEWS}" in body:
         body = body.replace("{NEWS}", _news.home_block(POSTS))
     inner = f"{head(meta['title'], meta['description'])}\n{nav(meta['current'])}\n{body}\n{footer()}"
@@ -76,6 +91,8 @@ def main():
         "/index.html / 301\n/scispinner-max.html /scispinner-max 301\n/founders.html /founders 301\n"
         "/tools/g-level-analysis.html /tools/g-level-analysis 301\n/analysis /tools/g-level-analysis 301\n"
         "/tools/clinostat-simulator.html /tools/clinostat-simulator 301\n/simulator /tools/clinostat-simulator 301\n"
+        "/tools/run-setup.html /tools/run-setup 301\n/setup /tools/run-setup 301\n"
+        "/tools/timelapse-video.html /tools/timelapse-video 301\n/timelapse /tools/timelapse-video 301\n"
         "/blog / 301\n/news/index.html /news/ 301\n/feed /news/feed.xml 301\n"
         "/datasheet /downloads/SciSpinner_Max_Datasheet_2026-10.pdf 302\n")
     (DIST / "tools").mkdir()

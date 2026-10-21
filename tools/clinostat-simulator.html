@@ -295,6 +295,15 @@ for (const [box, key] of [['dirF', 'cwF'], ['dirC', 'cwC']]) document.querySelec
   if (key === 'cwF') cwF = b.dataset.d === 'cw'; else cwC = b.dataset.d === 'cw'; restart();
 }));
 document.querySelectorAll('.chip').forEach(b => b.addEventListener('click', () => applySpeeds(+b.dataset.f, +b.dataset.c)));
+{ // ?frame=3.875&core=1.5&fdir=cw&cdir=ccw — the run-setup tool links here with its speeds
+  const q = new URLSearchParams(location.search);
+  const dir = (key, box) => { const d = q.get(key); if (d !== 'cw' && d !== 'ccw') return;
+    document.querySelectorAll('#' + box + ' button').forEach(x => x.setAttribute('aria-pressed', x.dataset.d === d));
+    if (key === 'fdir') cwF = d === 'cw'; else cwC = d === 'cw'; };
+  dir('fdir', 'dirF'); dir('cdir', 'dirC');
+  const n = (k, d) => { const v = parseFloat(q.get(k)); return isFinite(v) ? v : d; };
+  if (q.has('frame') || q.has('core')) applySpeeds(n('frame', spF), n('core', spC)); else restart();
+}
 document.querySelectorAll('#speed button').forEach(b => b.addEventListener('click', () => {
   document.querySelectorAll('#speed button').forEach(x => x.setAttribute('aria-pressed', x === b)); mult = +b.dataset.x;
 }));

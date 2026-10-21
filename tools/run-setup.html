@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SciSpinner Max run setup</title>
+<meta name="description" content="Prepare a SciSpinner Max on your computer: set the motor speeds, run plan, lighting presets, camera and display settings, then download scispinner-config.json for the instrument's USB drive. Runs entirely in your browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: the settings on the left in the same order as the instrument's own screens, the file on the right.
+   Tokens are the cosecloud.com site tokens, so the tool sits with the simulator and the g-level analysis page. */
+:root {
+  --bg: #F6F9FA; --surface: #FFFFFF; --surface-2: #EAF1F3;
+  --ink: #12303A; --ink-2: #3E5C66; --muted: #6C858D;
+  --line: #D5E0E4; --line-strong: #B7C8CE;
+  --accent: #0F7F9F; --accent-ink: #FFFFFF; --heading: #004053;
+  --warn: #C2571A; --ok: #2E7D4F;
+  --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  --radius: 4px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  color-scheme: dark; --bg: #0C1A1F; --surface: #122730; --surface-2: #17323C;
+  --ink: #E3ECEF; --ink-2: #B7C8CE; --muted: #8AA3AB; --line: #23404A; --line-strong: #345561;
+  --accent: #3FA9C7; --accent-ink: #061418; --heading: #DCEBF0; --warn: #E0803F; --ok: #5FBF85; } }
+:root[data-theme="dark"] {
+  color-scheme: dark; --bg: #0C1A1F; --surface: #122730; --surface-2: #17323C;
+  --ink: #E3ECEF; --ink-2: #B7C8CE; --muted: #8AA3AB; --line: #23404A; --line-strong: #345561;
+  --accent: #3FA9C7; --accent-ink: #061418; --heading: #DCEBF0; --warn: #E0803F; --ok: #5FBF85; }
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+[hidden] { display: none !important; }
+.wrap { max-width: 1200px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top { padding-block: 1.6rem 1rem; }
+.eyebrow { font-family: var(--mono); font-size: .76rem; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 0 0 .5rem; }
+h1 { font-size: clamp(1.6rem, 3.2vw, 2.2rem); line-height: 1.15; color: var(--heading); margin: 0 0 .5rem; font-weight: 600; text-wrap: balance; }
+.lede { color: var(--ink-2); max-width: 68ch; margin: 0; }
+a { color: var(--accent); }
+
+.main { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(300px, .85fr); gap: 1.5rem; align-items: start; padding-block: .5rem 2.5rem; }
+@media (max-width: 880px) { .main { grid-template-columns: minmax(0, 1fr); } .out { position: static !important; } }
+.col { display: grid; gap: 1rem; min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+.box { padding: 1rem 1.1rem; display: grid; gap: .8rem; }
+.box h2 { font-size: .74rem; font-family: var(--mono); font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0; display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+.box h2 small { font-family: var(--sans); text-transform: none; letter-spacing: 0; font-size: .84rem; font-weight: 400; }
+.box h3 { margin: .2rem 0 0; font-size: .95rem; color: var(--heading); font-weight: 600; }
+.field { display: grid; gap: .3rem; }
+.field label, .lab { font-weight: 500; }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
+.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; }
+.row { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; justify-content: space-between; }
+.axishead { display: flex; justify-content: space-between; align-items: center; gap: .6rem; }
+.axisrow { display: grid; grid-template-columns: minmax(0, 1fr) 6.4rem; gap: .6rem; align-items: center; }
+.vu { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; align-items: center; }
+.unit { font-family: var(--mono); font-size: .8rem; color: var(--muted); margin-left: .3rem; }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
+input[type=number], input[type=text], select { width: 100%; font: inherit; font-family: var(--mono); font-variant-numeric: tabular-nums; padding: .3rem .45rem; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--ink); }
+input[type=text] { font-family: var(--sans); }
+input:disabled, select:disabled, .seg button:disabled { opacity: .45; }
+.hint { font-size: .84rem; color: var(--muted); margin: 0; }
+.hint.warn { color: var(--warn); }
+.hint.ok { color: var(--ok); }
+.seg, .chips { display: flex; flex-wrap: wrap; gap: .4rem; }
+.seg button, .btn, .chip { font: inherit; font-size: .86rem; padding: .35rem .7rem; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--ink-2); cursor: pointer; }
+.seg button[aria-pressed="true"], .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.primary { font-weight: 500; }
+.btn:disabled { opacity: .5; cursor: default; }
+.switch { display: inline-flex; align-items: center; gap: .5rem; cursor: pointer; font-weight: 500; }
+.switch input { width: 1.05rem; height: 1.05rem; accent-color: var(--accent); margin: 0; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sv { font-family: var(--mono); font-size: .84rem; color: var(--ink-2); min-width: 4.2rem; text-align: right; }
+.sl { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .6rem; align-items: center; }
+
+/* lighting */
+.presets { display: grid; gap: .8rem; }
+.preset { border: 1px solid var(--line); border-radius: var(--radius); padding: .75rem .85rem; display: grid; gap: .6rem; background: var(--bg); }
+.preset .head { display: flex; justify-content: space-between; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.preset .head strong { color: var(--heading); }
+.zones { display: grid; gap: .45rem; }
+.zone { display: grid; grid-template-columns: 8.2rem repeat(4, minmax(2.6rem, 1fr)) 1.6rem auto; gap: .4rem; align-items: center; }
+.zone .sw { width: 1.4rem; height: 1.4rem; border-radius: 3px; border: 1px solid var(--line-strong); }
+.zone .x { padding: .2rem .45rem; font-size: .9rem; line-height: 1; }
+.zhead { display: grid; grid-template-columns: 8.2rem repeat(4, minmax(2.6rem, 1fr)) 1.6rem auto; gap: .4rem; font-family: var(--mono); font-size: .72rem; color: var(--muted); }
+@media (max-width: 560px) {
+  .two, .three { grid-template-columns: minmax(0, 1fr); }
+  .zhead { display: none; }
+  .zone { grid-template-columns: repeat(4, minmax(0, 1fr)) 1.6rem auto; }
+  .zone select { grid-column: 1 / -1; }
+  .zone input[type=number] { padding-inline: .3rem; }
+}
+.dlbar { display: none; }
+@media (max-width: 880px) {
+  .dlbar { display: flex; position: sticky; bottom: 0; z-index: 2; gap: .6rem; align-items: center; justify-content: space-between; margin: 0 -16px; padding: .6rem max(16px, env(safe-area-inset-left, 0px)) calc(.6rem + env(safe-area-inset-bottom, 0px)); background: var(--surface); border-top: 1px solid var(--line); font-size: .84rem; color: var(--muted); }
+  .dlbar .btn { white-space: nowrap; }
+}
+.strip { display: block; width: 100%; height: 34px; background: #1A262B; border-radius: 3px; }
+.sched { display: grid; gap: .45rem; }
+.step { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: .5rem; align-items: center; }
+.step .seg button { padding-inline: .55rem; }
+
+/* output */
+.out { position: sticky; top: 1rem; display: grid; gap: 1rem; }
+.file { display: grid; gap: .6rem; }
+.file .name { font-family: var(--mono); font-size: .9rem; color: var(--heading); }
+.checks { margin: 0; padding: 0; list-style: none; display: grid; gap: .25rem; font-size: .86rem; }
+.checks li::before { content: "✓ "; color: var(--ok); }
+.checks li.bad::before { content: "✗ "; color: var(--warn); }
+.checks li.bad { color: var(--warn); }
+pre.json { margin: 0; max-height: 50vh; overflow: auto; font-family: var(--mono); font-size: .76rem; line-height: 1.45; color: var(--ink-2); background: var(--bg); border: 1px solid var(--line); border-radius: var(--radius); padding: .7rem .8rem; }
+details.method { padding-block: 0 2.5rem; color: var(--ink-2); }
+details.method summary { cursor: pointer; color: var(--heading); font-weight: 500; }
+details.method p, details.method li { max-width: 80ch; }
+details.sum summary { cursor: pointer; color: var(--heading); font-weight: 500; font-size: .9rem; }
+ol.steps { margin: 0; padding-left: 1.2rem; display: grid; gap: .3rem; font-size: .9rem; color: var(--ink-2); }
+.drop { border: 1px dashed var(--line-strong); border-radius: var(--radius); padding: .7rem .8rem; font-size: .86rem; color: var(--muted); display: grid; gap: .4rem; }
+.drop.over { border-color: var(--accent); color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header class="top"><div class="wrap">
+  <p class="eyebrow"><a href="/tools/" style="color:inherit;text-decoration:none">Tools</a> &middot; SciSpinner Max</p>
+  <h1>Run setup</h1>
+  <p class="lede">Prepare an instrument from your computer. Set the motor speeds, the run plan, the lighting presets, the camera and the display settings here, download <span style="font-family:var(--mono)">scispinner-config.json</span>, and put it on the instrument's USB drive. The settings are loaded the next time the Control Module starts. Everything runs in your browser; nothing is uploaded.</p>
+</div></header>
+
+<div class="wrap main">
+  <div class="col" id="form">
+
+    <section class="panel box" aria-label="Motors">
+      <h2>Motors <small>Control screen</small></h2>
+      <div class="field">
+        <div class="axishead"><span class="lab">Frame</span>
+          <div class="seg" data-seg="dirF" aria-label="Frame direction"><button type="button" data-v="1" aria-pressed="true">Clockwise</button><button type="button" data-v="0" aria-pressed="false">Counter-CW</button></div></div>
+        <div class="axisrow"><input id="frR" type="range" min="0" max="5" step="0.001" value="3.875" aria-label="Frame speed"><span><input id="fr" type="number" min="0" max="5" step="0.001" value="3.875" aria-label="Frame speed in rpm"><span class="unit">rpm</span></span></div>
+      </div>
+      <div class="field">
+        <div class="axishead"><span class="lab">Core</span>
+          <div class="seg" data-seg="dirC" aria-label="Core direction"><button type="button" data-v="1" aria-pressed="true">Clockwise</button><button type="button" data-v="0" aria-pressed="false">Counter-CW</button></div></div>
+        <div class="axisrow"><input id="crR" type="range" min="0" max="5" step="0.001" value="1.5" aria-label="Core speed"><span><input id="cr" type="number" min="0" max="5" step="0.001" value="1.5" aria-label="Core speed in rpm"><span class="unit">rpm</span></span></div>
+      </div>
+      <p class="hint" id="spdHint">0.050–5.000 rpm per axis in 0.001 rpm steps; 0 holds the axis still. Direction is as seen from the axis's motor end. These are the values the dials show at start-up; the motors stay off until Run is pressed on the instrument.</p>
+      <div class="row">
+        <div class="chips" aria-label="Presets">
+          <button class="chip" type="button" data-f="3.875" data-c="1.5">Instrument default</button>
+          <button class="chip" type="button" data-f="2" data-c="2">Equal speeds</button>
+          <button class="chip" type="button" data-f="1" data-c="2">1 : 2 ratio</button>
+        </div>
+        <a class="hint" id="simLink" href="/tools/clinostat-simulator" target="_blank" rel="noopener">Check these speeds in the simulator ↗</a>
+      </div>
+      <label class="switch"><input type="checkbox" id="link" checked> Linked run: one Run button starts and stops both axes</label>
+    </section>
+
+    <section class="panel box" aria-label="Run plan">
+      <h2>Run plan <small>Experiment screen</small></h2>
+      <div class="field"><label for="name">Session name</label><input id="name" type="text" maxlength="64" placeholder="2026-10-20-run1" autocomplete="off"><p class="hint">Folder name on the USB drive: <span style="font-family:var(--mono)">sessions/&lt;name&gt;/</span>. Letters, digits, dash and underscore.</p></div>
+      <div class="two">
+        <div class="field"><span class="lab">Duration</span>
+          <div class="vu"><input id="durV" type="number" min="1" max="99" step="1" value="6" aria-label="Duration value"><div class="seg" data-seg="durU" aria-label="Duration unit"><button type="button" data-v="min" aria-pressed="false">min</button><button type="button" data-v="hr" aria-pressed="true">hr</button><button type="button" data-v="day" aria-pressed="false">day</button></div></div>
+          <label class="switch" style="font-weight:400"><input type="checkbox" id="open"> Open-ended (stop by hand)</label>
+        </div>
+        <div class="field"><span class="lab">Time-lapse interval</span>
+          <div class="vu"><input id="intV" type="number" min="1" max="99" step="1" value="5" aria-label="Interval value"><div class="seg" data-seg="intU" aria-label="Interval unit"><button type="button" data-v="sec" aria-pressed="false">sec</button><button type="button" data-v="min" aria-pressed="true">min</button><button type="button" data-v="hr" aria-pressed="false">hr</button></div></div>
+          <label class="switch" style="font-weight:400"><input type="checkbox" id="tl" checked> Capture a time-lapse</label>
+        </div>
+      </div>
+      <p class="hint" id="planHint"></p>
+      <h3>Lighting schedule</h3>
+      <label class="switch"><input type="checkbox" id="lightOn"> Cycle lighting presets during the run</label>
+      <div class="sched" id="sched"></div>
+      <div class="row"><button class="btn" type="button" id="addStep">+ Add step</button><p class="hint">Up to 4 steps; they repeat for the whole run. “Off” is darkness. Each step holds at least one minute.</p></div>
+    </section>
+
+    <section class="panel box" aria-label="Lighting presets">
+      <h2>Lighting presets <small>Lighting screen</small></h2>
+      <p class="hint">Each preset is a whole-strip scene: the 90-pixel <strong>ring</strong> (pixels 1–90) and the 40-pixel <strong>halo</strong> (91–130), RGBW, 0–255 per channel, with one brightness for the scene. Later zones paint over earlier ones. The firmware keeps the strip under its 3000 mA budget by dimming an over-budget scene; the estimate below uses the controller's arithmetic.</p>
+      <div class="presets" id="presets"></div>
+    </section>
+
+    <section class="panel box" aria-label="Camera">
+      <h2>Camera <small>Camera screen</small></h2>
+      <div class="two">
+        <div class="field"><span class="lab">Focus</span>
+          <div class="seg" data-seg="af" aria-label="Focus mode"><button type="button" data-v="auto" aria-pressed="true">Auto</button><button type="button" data-v="manual" aria-pressed="false">Manual</button></div>
+          <div class="sl"><input id="lens" type="range" min="0" max="100" step="1" value="50" aria-label="Focus distance" disabled><span class="sv" id="lensV">auto</span></div>
+        </div>
+        <div class="field"><span class="lab">Exposure</span>
+          <div class="seg" data-seg="ae" aria-label="Exposure mode"><button type="button" data-v="1" aria-pressed="true">Auto</button><button type="button" data-v="0" aria-pressed="false">Manual</button></div>
+          <div class="sl"><input id="ev" type="range" min="-20" max="20" step="1" value="0" aria-label="Brightness EV"><span class="sv" id="evV">EV 0.0</span></div>
+          <p class="hint" id="aeHint" hidden>Manual exposure keeps the shutter and gain last metered and locked on the instrument.</p>
+        </div>
+        <div class="field"><span class="lab">Contrast</span><div class="sl"><input id="contrast" type="range" min="0" max="20" step="1" value="10"><span class="sv" id="contrastV">1.0</span></div></div>
+        <div class="field"><span class="lab">Sharpness</span><div class="sl"><input id="sharp" type="range" min="0" max="80" step="1" value="10"><span class="sv" id="sharpV">1.0</span></div></div>
+        <div class="field"><span class="lab">Digital zoom</span><div class="sl"><input id="zoom" type="range" min="0" max="80" step="1" value="0"><span class="sv" id="zoomV">1.0×</span></div></div>
+        <div class="field"><span class="lab">Chamber fan</span><div class="sl"><input id="fan" type="range" min="0" max="100" step="1" value="0"><span class="sv" id="fanV">0%</span></div></div>
+        <div class="field"><span class="lab">IR illumination</span><div class="seg" data-seg="ir"><button type="button" data-v="off" aria-pressed="true">Off</button><button type="button" data-v="on" aria-pressed="false">On</button><button type="button" data-v="flash" aria-pressed="false">Flash</button></div><p class="hint">Flash: IR on only during capture.</p></div>
+        <div class="field"><span class="lab">Orientation</span><div class="seg" data-seg="orient"><button type="button" data-v="00" aria-pressed="true">Normal</button><button type="button" data-v="10" aria-pressed="false">Flip H</button><button type="button" data-v="01" aria-pressed="false">Flip V</button><button type="button" data-v="11" aria-pressed="false">180°</button></div></div>
+        <div class="field"><span class="lab">Still resolution</span><div class="seg" data-seg="res"><button type="button" data-v="2592" aria-pressed="true">Full</button><button type="button" data-v="1296" aria-pressed="false">Medium</button><button type="button" data-v="648" aria-pressed="false">Small</button></div><p class="hint" id="resHint">2592 × 1944</p></div>
+        <div class="field"><span class="lab">Still format</span><div class="seg" data-seg="fmt"><button type="button" data-v="jpeg" aria-pressed="true">JPEG</button><button type="button" data-v="png" aria-pressed="false">PNG</button></div><label class="switch" style="font-weight:400;margin-top:.2rem"><input type="checkbox" id="gray"> Grayscale</label></div>
+      </div>
+    </section>
+
+    <section class="panel box" aria-label="Display">
+      <h2>Display <small>Sensors screen and theme</small></h2>
+      <div class="two">
+        <div class="field"><span class="lab">Temperature and humidity graph</span><div class="seg" data-seg="durSeg"><button type="button" data-v="120" aria-pressed="false">2 min</button><button type="button" data-v="600" aria-pressed="true">10 min</button><button type="button" data-v="1800" aria-pressed="false">30 min</button></div></div>
+        <div class="field"><span class="lab">Gravity graph</span><div class="seg" data-seg="gDurSeg"><button type="button" data-v="600" aria-pressed="false">10 min</button><button type="button" data-v="1800" aria-pressed="true">30 min</button><button type="button" data-v="5400" aria-pressed="false">90 min</button></div></div>
+        <div class="field"><span class="lab">Acceleration graph</span><div class="seg" data-seg="accDurSeg"><button type="button" data-v="30" aria-pressed="true">30 s</button><button type="button" data-v="120" aria-pressed="false">2 min</button><button type="button" data-v="600" aria-pressed="false">10 min</button></div></div>
+        <div class="field"><span class="lab">Rotation graph</span><div class="seg" data-seg="rotDurSeg"><button type="button" data-v="30" aria-pressed="true">30 s</button><button type="button" data-v="120" aria-pressed="false">2 min</button><button type="button" data-v="600" aria-pressed="false">10 min</button></div></div>
+        <div class="field"><span class="lab">Screen theme</span><div class="seg" data-seg="theme"><button type="button" data-v="dark" aria-pressed="true">Dark</button><button type="button" data-v="light" aria-pressed="false">Light</button></div></div>
+      </div>
+    </section>
+    <div class="dlbar"><span id="dlbarMsg">scispinner-config.json</span><button class="btn primary" type="button" id="dl2">Download</button></div>
+  </div>
+
+  <aside class="out">
+    <section class="panel box file" aria-label="Configuration file">
+      <h2>Configuration file</h2>
+      <p class="name">scispinner-config.json</p>
+      <ul class="checks" id="checks"></ul>
+      <button class="btn primary" type="button" id="dl">Download scispinner-config.json</button>
+      <div class="drop" id="drop"><span>Start from an instrument's existing file: drop a <span style="font-family:var(--mono)">scispinner-config.json</span> here or <label style="color:var(--accent);cursor:pointer;text-decoration:underline">choose it<input type="file" id="load" accept=".json,application/json" hidden></label>. Settings this page does not edit are kept as they are.</span><span id="loadMsg"></span></div>
+      <details class="sum"><summary>Preview the file</summary><pre class="json" id="json"></pre></details>
+    </section>
+    <section class="panel box" aria-label="How to use the file">
+      <h2>On the instrument</h2>
+      <ol class="steps">
+        <li>Copy the file to the top level of the instrument's USB drive (the drive that holds <span style="font-family:var(--mono)">sessions/</span>).</li>
+        <li>Plug the drive into the Control Module and switch the instrument on, or restart it. The USB copy of the file is used in preference to the one stored on the module.</li>
+        <li>Check the dials and the Experiment screen, then press Run. The file sets the settings; it never starts a run by itself.</li>
+      </ol>
+      <p class="hint">Changes made on the instrument afterwards are written back to the same file, so you can bring the drive back here to edit it again.</p>
+    </section>
+  </aside>
+</div>
+
+<details class="wrap method">
+  <summary>What the file contains</summary>
+  <p>The Control Module keeps its settings in a small JSON file, <span style="font-family:var(--mono)">scispinner-config.json</span>, on the module and on the USB drive. At start-up it reads the USB copy if there is one, and afterwards every change made on the screens is written to both. This page produces the same file from the same rules as the instrument's own screens:</p>
+  <ul>
+    <li><strong>Motors</strong>: <span style="font-family:var(--mono)">frame_motor_speed</span>, <span style="font-family:var(--mono)">core_motor_speed</span> (rpm; 0 or 0.050–5.000), <span style="font-family:var(--mono)">frame_motor_direction_cw</span>, <span style="font-family:var(--mono)">core_motor_direction_cw</span>, <span style="font-family:var(--mono)">link_run</span>. A power-cycled instrument never spins by itself; these set the dials for the next Run.</li>
+    <li><strong>Run plan</strong>: <span style="font-family:var(--mono)">exp_plan</span>, the draft shown on the Experiment screen: name, duration, time-lapse interval, open-ended flag, and the lighting schedule steps (preset 0–4, value 1–99, unit minutes or hours).</li>
+    <li><strong>Lighting</strong>: <span style="font-family:var(--mono)">preset_1</span> to <span style="font-family:var(--mono)">preset_4</span>, each a list of LED commands (<span style="font-family:var(--mono)">start_led</span>, <span style="font-family:var(--mono)">end_led</span>, <span style="font-family:var(--mono)">red</span>, <span style="font-family:var(--mono)">green</span>, <span style="font-family:var(--mono)">blue</span>, <span style="font-family:var(--mono)">white</span>, <span style="font-family:var(--mono)">brightness</span>). The strip has 130 RGBW pixels: ring 1–90, halo 91–130.</li>
+    <li><strong>Camera</strong>: <span style="font-family:var(--mono)">camera</span> with focus (<span style="font-family:var(--mono)">af_mode</span>, <span style="font-family:var(--mono)">lens</span> in dioptres), exposure (<span style="font-family:var(--mono)">ae</span>, <span style="font-family:var(--mono)">ev</span>), <span style="font-family:var(--mono)">contrast</span>, <span style="font-family:var(--mono)">sharpness</span>, <span style="font-family:var(--mono)">zoom</span> (0–0.8 crop), <span style="font-family:var(--mono)">saturation</span>, <span style="font-family:var(--mono)">hflip</span>, <span style="font-family:var(--mono)">vflip</span>, <span style="font-family:var(--mono)">ir</span>, <span style="font-family:var(--mono)">res</span>, <span style="font-family:var(--mono)">fmt</span>, <span style="font-family:var(--mono)">fan</span>.</li>
+    <li><strong>Display</strong>: <span style="font-family:var(--mono)">graph_windows</span> (seconds shown on each Sensors graph) and <span style="font-family:var(--mono)">theme</span>.</li>
+  </ul>
+  <p>A file that is missing a key, or has an unusable value, falls back to the instrument's default for that key, so a partial or older file is safe to load. The page only writes keys it knows; anything else in a loaded file is passed through unchanged.</p>
+</details>
+
+<footer class="wrap" style="padding-block:0 2.5rem;font-size:.82rem;color:var(--muted)">Run setup v1.0 &middot; Collaborative Science Environment Inc. &middot; Open source, GPL-3.0 &middot; Nothing leaves your browser.</footer>
+
+<script>
+(() => {
+'use strict';
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const STRIP = 130, RING = [1, 90], HALO = [91, 130];
+const BUDGET = { budget_ma: 3000, ma_colour: 9, ma_white: 17, idle_ma_per_pixel: 1 };   // controller static defaults
+const MIN_RPM = 0.05, MAX_RPM = 5;
+const DUR_U = { min: 60, hr: 3600, day: 86400 }, INT_U = { sec: 1, min: 60, hr: 3600 };
+const RES = { 2592: '2592 × 1944', 1296: '1296 × 972', 648: '648 × 486' };
+let extra = {};                 // keys from a loaded file this page does not edit, passed through
+const today = () => { const d = new Date(), z = n => String(n).padStart(2, '0'); return `${d.getFullYear()}-${z(d.getMonth() + 1)}-${z(d.getDate())}`; };
+$('name').placeholder = today() + '-run1';
+
+/* ---- segmented buttons ---- */
+const segs = {};
+document.querySelectorAll('.seg[data-seg]').forEach(seg => {
+  const k = seg.dataset.seg; segs[k] = seg;
+  seg.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { setSeg(k, b.dataset.v); onChange(); }));
+});
+const getSeg = k => { const b = segs[k].querySelector('[aria-pressed="true"]'); return b ? b.dataset.v : null; };
+const setSeg = (k, v) => segs[k].querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === String(v))));
+
+/* ---- motors ---- */
+const clampRpm = v => { v = +v; if (!isFinite(v) || v <= 0) return 0; return +clamp(Math.round(v * 1000) / 1000, MIN_RPM, MAX_RPM).toFixed(3); };
+function bindAxis(num, range) {
+  const commit = v => { v = clampRpm(v); num.value = v.toFixed(3); range.value = v; onChange(); };
+  range.addEventListener('input', () => { num.value = (+range.value).toFixed(3); onChange(); });
+  range.addEventListener('change', () => commit(range.value));
+  num.addEventListener('change', () => commit(num.value));
+}
+bindAxis($('fr'), $('frR')); bindAxis($('cr'), $('crR'));
+document.querySelectorAll('.chip[data-f]').forEach(c => c.addEventListener('click', () => {
+  $('fr').value = (+c.dataset.f).toFixed(3); $('frR').value = c.dataset.f; $('cr').value = (+c.dataset.c).toFixed(3); $('crR').value = c.dataset.c; onChange();
+}));
+
+/* ---- run plan ---- */
+const schedEl = $('sched');
+function addStep(preset = 1, val = 1, unit = 'h') {
+  if (schedEl.children.length >= 4) return;
+  const row = document.createElement('div'); row.className = 'step';
+  row.innerHTML = '<div class="seg" data-p aria-label="Preset">' + [0, 1, 2, 3, 4].map(p => `<button type="button" data-v="${p}" aria-pressed="${p === preset}">${p ? p : 'Off'}</button>`).join('') + '</div>'
+    + `<input type="number" min="1" max="99" step="1" value="${clamp(Math.round(val) || 1, 1, 99)}" aria-label="Step length">`
+    + '<div class="seg" data-u aria-label="Unit">' + [['m', 'min'], ['h', 'hr']].map(([v, l]) => `<button type="button" data-v="${v}" aria-pressed="${v === unit}">${l}</button>`).join('') + '</div>'
+    + '<button class="btn x" type="button" aria-label="Remove step">×</button>';
+  row.querySelectorAll('.seg').forEach(seg => seg.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    seg.querySelectorAll('button').forEach(o => o.setAttribute('aria-pressed', String(o === b))); onChange();
+  })));
+  row.querySelector('input').addEventListener('change', e => { e.target.value = clamp(Math.round(+e.target.value) || 1, 1, 99); onChange(); });
+  row.querySelector('.x').addEventListener('click', () => { row.remove(); onChange(); });
+  schedEl.appendChild(row);
+}
+const readSteps = () => [...schedEl.children].map(r => ({
+  preset: +r.querySelector('[data-p] [aria-pressed="true"]').dataset.v,
+  val: clamp(Math.round(+r.querySelector('input').value) || 1, 1, 99),
+  unit: r.querySelector('[data-u] [aria-pressed="true"]').dataset.v }));
+$('addStep').addEventListener('click', () => { addStep(1, 1, 'h'); onChange(); });
+addStep(1, 16, 'h'); addStep(0, 8, 'h');          // instrument default: preset 1 for 16 h, dark for 8 h
+['durV', 'intV'].forEach(id => $(id).addEventListener('change', e => { e.target.value = clamp(Math.round(+e.target.value) || 1, 1, 99); onChange(); }));
+['open', 'tl', 'lightOn', 'link', 'gray'].forEach(id => $(id).addEventListener('change', onChange));
+$('name').addEventListener('input', onChange);
+
+/* ---- lighting presets ---- */
+const presetsEl = $('presets'), presetUI = [];
+const hex2 = n => clamp(Math.round(n) || 0, 0, 255).toString(16).padStart(2, '0');
+function swatch(z) {           // RGBW to a screen colour: the white channel is a warm white LED, added to the colour
+  const w = z.w / 255, warm = [255, 232, 190];
+  const mix = (c, i) => Math.round(clamp(Math.max(c, warm[i] * w, c * (1 - w) + warm[i] * w * 0.6), 0, 255));
+  return `#${hex2(mix(z.r, 0))}${hex2(mix(z.g, 1))}${hex2(mix(z.b, 2))}`;
+}
+function makePreset(n) {
+  const el = document.createElement('div'); el.className = 'preset';
+  el.innerHTML = `<div class="head"><strong>Preset ${n}</strong><div class="chips">
+      <button class="chip" type="button" data-q="white">Warm white</button><button class="chip" type="button" data-q="day">Daylight</button>
+      <button class="chip" type="button" data-q="red">Red</button><button class="chip" type="button" data-q="blue">Blue</button><button class="chip" type="button" data-q="clear">Clear</button></div></div>
+    <svg class="strip" viewBox="0 0 130 10" preserveAspectRatio="none" shape-rendering="crispEdges" aria-hidden="true"></svg>
+    <div class="zhead"><span>zone</span><span>R</span><span>G</span><span>B</span><span>W</span><span></span><span></span></div>
+    <div class="zones"></div>
+    <div class="row"><button class="btn add" type="button">+ Add zone</button>
+      <div class="sl" style="flex:1 1 14rem"><input class="bri" type="range" min="0" max="255" step="1" value="255" aria-label="Brightness"><span class="sv bri-v">bright. 255</span></div></div>
+    <p class="hint est"></p>`;
+  const zones = el.querySelector('.zones'), bri = el.querySelector('.bri');
+  const ui = { el, zones, bri, n, add(z) {
+    if (zones.children.length >= 8) return;
+    const row = document.createElement('div'); row.className = 'zone';
+    const sel = `<select aria-label="Zone"><option value="ring">Ring 1–90</option><option value="halo">Halo 91–130</option><option value="all">All 1–130</option><option value="custom">Custom</option></select>`;
+    row.innerHTML = sel + ['r', 'g', 'b', 'w'].map(c => `<input type="number" min="0" max="255" step="1" data-c="${c}" value="${clamp(Math.round(z[c]) || 0, 0, 255)}" aria-label="${c.toUpperCase()}" title="${c.toUpperCase()} 0–255">`).join('')
+      + '<span class="sw"></span><button class="btn x" type="button" aria-label="Remove zone">×</button>'
+      + '<div class="custom" style="grid-column:1/-1;display:none;gap:.4rem;grid-template-columns:auto 5rem auto 5rem"><span class="hint">from</span><input type="number" min="1" max="130" data-c="s" value="1" aria-label="First pixel"><span class="hint">to</span><input type="number" min="1" max="130" data-c="e" value="130" aria-label="Last pixel"></div>';
+    const s = row.querySelector('select'), cu = row.querySelector('.custom');
+    const kind = z.s === RING[0] && z.e === RING[1] ? 'ring' : z.s === HALO[0] && z.e === HALO[1] ? 'halo' : z.s === 1 && z.e === STRIP ? 'all' : 'custom';
+    s.value = kind; cu.style.display = kind === 'custom' ? 'grid' : 'none';
+    cu.querySelector('[data-c=s]').value = z.s; cu.querySelector('[data-c=e]').value = z.e;
+    s.addEventListener('change', () => { cu.style.display = s.value === 'custom' ? 'grid' : 'none'; onChange(); });
+    row.querySelectorAll('input').forEach(i => i.addEventListener('change', () => { i.value = clamp(Math.round(+i.value) || 0, +i.min, +i.max); onChange(); }));
+    row.querySelector('.x').addEventListener('click', () => { row.remove(); onChange(); });
+    zones.appendChild(row);
+  }, read() {
+    const out = []; for (const row of zones.children) {
+      const k = row.querySelector('select').value, g = c => clamp(Math.round(+row.querySelector(`[data-c=${c}]`).value) || 0, 0, 255);
+      let s = 1, e = STRIP; if (k === 'ring') [s, e] = RING; else if (k === 'halo') [s, e] = HALO; else if (k === 'custom') { s = clamp(Math.round(+row.querySelector('[data-c=s]').value) || 1, 1, STRIP); e = clamp(Math.round(+row.querySelector('[data-c=e]').value) || s, 1, STRIP); if (e < s) [s, e] = [e, s]; }
+      out.push({ s, e, r: g('r'), g: g('g'), b: g('b'), w: g('w') });
+    } return out;
+  }, clear() { zones.innerHTML = ''; } };
+  el.querySelector('.add').addEventListener('click', () => { ui.add({ s: 1, e: STRIP, r: 0, g: 0, b: 0, w: 255 }); onChange(); });
+  bri.addEventListener('input', onChange);
+  el.querySelectorAll('[data-q]').forEach(b => b.addEventListener('click', () => {
+    ui.clear(); const q = b.dataset.q;
+    if (q === 'white') ui.add({ s: 1, e: STRIP, r: 0, g: 0, b: 0, w: 255 });
+    else if (q === 'day') ui.add({ s: 1, e: STRIP, r: 255, g: 255, b: 255, w: 255 });
+    else if (q === 'red') ui.add({ s: 1, e: STRIP, r: 255, g: 0, b: 0, w: 0 });
+    else if (q === 'blue') ui.add({ s: 1, e: STRIP, r: 0, g: 0, b: 255, w: 0 });
+    bri.value = 255; onChange();
+  }));
+  presetsEl.appendChild(el); presetUI.push(ui); return ui;
+}
+for (let n = 1; n <= 4; n++) makePreset(n);
+presetUI[0].add({ s: 1, e: STRIP, r: 0, g: 0, b: 0, w: 255 });   // preset 1: warm white, so the default schedule has something to show
+
+function presetCommands(ui) {          // the controller's command list: paint in order, one brightness (the last command's)
+  const bri = clamp(Math.round(+ui.bri.value), 0, 255);
+  return ui.read().map(z => ({ start_led: z.s, end_led: z.e, red: z.r, green: z.g, blue: z.b, white: z.w, brightness: bri }));
+}
+function renderStrip(ui, cmds) {       // mirror of lighting_control.render + estimate
+  const px = Array.from({ length: STRIP + 1 }, () => [0, 0, 0, 0]); let bri = 255;
+  for (const c of cmds) { for (let i = Math.max(1, c.start_led); i <= Math.min(STRIP, c.end_led); i++) px[i] = [c.red, c.green, c.blue, c.white]; bri = c.brightness; }
+  const svg = ui.el.querySelector('.strip'); let s = '';
+  for (let i = 1; i <= STRIP; i++) { const [r, g, b, w] = px[i]; const lit = r + g + b + w > 0;
+    s += `<rect x="${i - 1}" y="${i <= 90 ? 0 : 1}" width="1" height="${i <= 90 ? 10 : 8}" fill="${lit ? swatch({ r, g, b, w }) : '#2A383E'}" opacity="${lit ? (0.25 + 0.75 * bri / 255).toFixed(2) : 1}"/>`; }
+  s += '<rect x="90" y="0" width="0.4" height="10" fill="#1A262B"/>';
+  svg.innerHTML = s;
+  for (const row of ui.zones.children) { const g = c => +row.querySelector(`[data-c=${c}]`).value; row.querySelector('.sw').style.background = swatch({ r: g('r'), g: g('g'), b: g('b'), w: g('w') }); }
+  ui.el.querySelector('.bri-v').textContent = 'bright. ' + bri;
+  const B = BUDGET; let units = 0; for (let i = 1; i <= STRIP; i++) units += (px[i][0] + px[i][1] + px[i][2]) * B.ma_colour + px[i][3] * B.ma_white;
+  const lit = units * bri / 65025, idle = STRIP * B.idle_ma_per_pixel, asked = idle + lit;
+  const scale = (B.budget_ma && lit && asked > B.budget_ma) ? Math.max(0, (B.budget_ma - idle) / lit) : 1;
+  const est = ui.el.querySelector('.est');
+  if (!cmds.length) { est.className = 'hint est'; est.textContent = 'Empty preset: selecting it in a schedule leaves the strip as it is.'; }
+  else if (scale < 1) { est.className = 'hint est warn'; est.textContent = `Asks for about ${Math.round(asked)} mA; the firmware will dim this scene to ${Math.round(scale * 100)} % to stay under ${B.budget_ma} mA.`; }
+  else { est.className = 'hint est ok'; est.textContent = `About ${Math.round(asked)} mA of the ${B.budget_ma} mA budget.`; }
+}
+
+/* ---- camera ---- */
+const lensLabel = v => { const d = v / 10; if (d < 0.15) return '∞'; const cm = 100 / d; return cm >= 100 ? (cm / 100).toFixed(1) + ' m' : Math.round(cm) + ' cm'; };
+['lens', 'ev', 'contrast', 'sharp', 'zoom', 'fan'].forEach(id => $(id).addEventListener('input', onChange));
+
+/* ---- build the file ---- */
+function build() {
+  const steps = readSteps();
+  const name = $('name').value.trim() || $('name').placeholder;
+  const af = getSeg('af'), ae = getSeg('ae') === '1', [h, v] = getSeg('orient').split('');
+  const camera = Object.assign({}, extra.camera || {}, {
+    af_mode: af, ae, ev: +($('ev').value / 10).toFixed(1), contrast: +($('contrast').value / 10).toFixed(1), sharpness: +($('sharp').value / 10).toFixed(1),
+    zoom: +($('zoom').value / 100).toFixed(2), saturation: $('gray').checked ? 0 : 1, hflip: h === '1', vflip: v === '1',
+    ir: getSeg('ir'), res: +getSeg('res'), fmt: getSeg('fmt'), fan: +$('fan').value });
+  if (af === 'manual') camera.lens = +($('lens').value / 10).toFixed(1); else delete camera.lens;
+  if (ae) { delete camera.shutter; delete camera.gain; }          // auto exposure: no locked values carried along
+  const cfg = Object.assign({}, extra, {
+    frame_motor_speed: clampRpm($('fr').value), core_motor_speed: clampRpm($('cr').value),
+    frame_motor_direction_cw: getSeg('dirF') === '1', core_motor_direction_cw: getSeg('dirC') === '1',
+    link_run: $('link').checked,
+    exp_plan: { open: $('open').checked, tl: $('tl').checked, dur_v: +$('durV').value, dur_u: getSeg('durU'), int_v: +$('intV').value, int_u: getSeg('intU'), name, light_on: $('lightOn').checked, steps },
+    camera,
+    graph_windows: { durSeg: +getSeg('durSeg'), gDurSeg: +getSeg('gDurSeg'), rotDurSeg: +getSeg('rotDurSeg'), accDurSeg: +getSeg('accDurSeg') },
+    theme: getSeg('theme') });
+  presetUI.forEach(ui => { cfg['preset_' + ui.n] = presetCommands(ui); });
+  return cfg;
+}
+function validate(cfg) {
+  const out = [], ok = (t) => out.push({ t }), bad = (t) => out.push({ t, bad: true });
+  const spd = a => a ? a.toFixed(3) + ' rpm' : 'still';
+  ok(`Frame ${spd(cfg.frame_motor_speed)} ${cfg.frame_motor_direction_cw ? 'CW' : 'CCW'}, core ${spd(cfg.core_motor_speed)} ${cfg.core_motor_direction_cw ? 'CW' : 'CCW'}`);
+  if (cfg.frame_motor_speed && cfg.core_motor_speed && cfg.frame_motor_speed === cfg.core_motor_speed) bad('Equal speeds on both axes: ⟨g⟩ never falls below 0.5 g (try the simulator)');
+  const p = cfg.exp_plan;
+  if (!/^[A-Za-z0-9._-]+$/.test(p.name)) bad('Session name: use letters, digits, dot, dash and underscore only'); else ok(`Session “${p.name}”`);
+  const durS = p.dur_v * DUR_U[p.dur_u], intS = p.int_v * INT_U[p.int_u];
+  ok(p.open ? 'Open-ended run' : `Run for ${p.dur_v} ${p.dur_u}`);
+  if (p.tl) { if (intS < 10) bad('Time-lapse interval must be at least 10 s'); else { const n = p.open ? null : Math.floor(durS / intS) + 1; ok(`Time-lapse every ${p.int_v} ${p.int_u}` + (n ? `, about ${n} ${cfg.camera.fmt.toUpperCase()} frames at ${RES[cfg.camera.res]}` : '')); } }
+  else ok('No time-lapse');
+  if (p.light_on) { if (!p.steps.length) bad('Lighting schedule is on but has no steps'); else {
+    const cycle = p.steps.reduce((a, s) => a + s.val * (s.unit === 'm' ? 60 : 3600), 0);
+    const missing = p.steps.filter(s => s.preset && !cfg['preset_' + s.preset].length).map(s => s.preset);
+    ok(`Lighting: ${p.steps.map(s => (s.preset ? 'preset ' + s.preset : 'off') + ' ' + s.val + (s.unit === 'm' ? ' min' : ' h')).join(' → ')}, repeating every ${(cycle / 3600).toFixed(cycle % 3600 ? 1 : 0)} h`);
+    if (missing.length) bad(`Schedule uses empty preset${missing.length > 1 ? 's' : ''} ${[...new Set(missing)].join(', ')}`); } }
+  else ok('Lighting stays as set on the instrument');
+  return out;
+}
+function onChange() {
+  // dependent controls
+  $('durV').disabled = $('open').checked; $('intV').disabled = !$('tl').checked;
+  segs.durU.querySelectorAll('button').forEach(b => b.disabled = $('open').checked); segs.intU.querySelectorAll('button').forEach(b => b.disabled = !$('tl').checked);
+  const on = $('lightOn').checked; schedEl.style.opacity = on ? '' : '.45'; $('addStep').disabled = !on || schedEl.children.length >= 4;
+  $('addStep').textContent = schedEl.children.length >= 4 ? 'Max 4 steps' : '+ Add step';
+  const manual = getSeg('af') === 'manual'; $('lens').disabled = !manual; $('lensV').textContent = manual ? lensLabel(+$('lens').value) : 'auto';
+  const ae = getSeg('ae') === '1'; $('ev').disabled = !ae; $('aeHint').hidden = ae; $('evV').textContent = 'EV ' + ($('ev').value / 10).toFixed(1);
+  $('contrastV').textContent = ($('contrast').value / 10).toFixed(1); $('sharpV').textContent = ($('sharp').value / 10).toFixed(1);
+  $('zoomV').textContent = (1 / (1 - $('zoom').value / 100)).toFixed(1) + '×'; $('fanV').textContent = $('fan').value + '%';
+  $('resHint').textContent = RES[getSeg('res')];
+  const f = clampRpm($('fr').value), c = clampRpm($('cr').value);
+  $('simLink').href = `/tools/clinostat-simulator?frame=${f}&core=${c}&fdir=${getSeg('dirF') === '1' ? 'cw' : 'ccw'}&cdir=${getSeg('dirC') === '1' ? 'cw' : 'ccw'}`;
+  const dur = $('open').checked ? 'until stopped' : `${$('durV').value} ${getSeg('durU')}`;
+  $('planHint').textContent = `Runs ${dur}` + ($('tl').checked ? `, one frame every ${$('intV').value} ${getSeg('intU')}.` : ', no time-lapse.');
+  // file
+  const cfg = build();
+  presetUI.forEach(ui => renderStrip(ui, cfg['preset_' + ui.n]));
+  const checks = validate(cfg);
+  $('checks').innerHTML = checks.map(c => `<li${c.bad ? ' class="bad"' : ''}>${c.t}</li>`).join('');
+  const nbad = checks.filter(c => c.bad).length; $('dlbarMsg').textContent = nbad ? `${nbad} thing${nbad > 1 ? 's' : ''} to check (see the file panel)` : 'scispinner-config.json ready';
+  $('dlbarMsg').style.color = nbad ? 'var(--warn)' : '';
+  $('json').textContent = JSON.stringify(cfg, null, 2);
+}
+
+/* ---- download ---- */
+$('dl2').addEventListener('click', () => $('dl').click());
+$('dl').addEventListener('click', () => {
+  const text = JSON.stringify(build(), null, 2) + '\n';
+  const blob = new Blob([text], { type: 'application/json' }), url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'scispinner-config.json'; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+});
+
+/* ---- load an existing file ---- */
+function applyFile(obj) {
+  const num = (v, d) => (typeof v === 'number' && isFinite(v)) ? v : d;
+  extra = {}; for (const k of Object.keys(obj)) if (!/^(frame_motor_speed|core_motor_speed|frame_motor_direction_cw|core_motor_direction_cw|link_run|exp_plan|camera|graph_windows|theme|preset_[1-4])$/.test(k)) extra[k] = obj[k];
+  const fr = clampRpm(num(obj.frame_motor_speed, 0.5)), cr = clampRpm(num(obj.core_motor_speed, 0.5));
+  $('fr').value = fr.toFixed(3); $('frR').value = fr; $('cr').value = cr.toFixed(3); $('crR').value = cr;
+  setSeg('dirF', obj.frame_motor_direction_cw === false ? 0 : 1); setSeg('dirC', obj.core_motor_direction_cw === false ? 0 : 1);
+  $('link').checked = obj.link_run !== false;
+  const p = obj.exp_plan || {};
+  $('name').value = typeof p.name === 'string' ? p.name : ''; $('open').checked = !!p.open; $('tl').checked = p.tl !== false;
+  $('durV').value = clamp(Math.round(num(p.dur_v, 6)), 1, 99); setSeg('durU', DUR_U[p.dur_u] ? p.dur_u : 'hr');
+  $('intV').value = clamp(Math.round(num(p.int_v, 5)), 1, 99); setSeg('intU', INT_U[p.int_u] ? p.int_u : 'min');
+  $('lightOn').checked = !!p.light_on; schedEl.innerHTML = '';
+  (Array.isArray(p.steps) && p.steps.length ? p.steps : [{ preset: 1, val: 16, unit: 'h' }, { preset: 0, val: 8, unit: 'h' }]).slice(0, 4).forEach(s => addStep(clamp(Math.round(num(s.preset, 1)), 0, 4), num(s.val, 1), s.unit === 'm' ? 'm' : 'h'));
+  presetUI.forEach(ui => { ui.clear(); const cmds = Array.isArray(obj['preset_' + ui.n]) ? obj['preset_' + ui.n] : []; let bri = 255;
+    cmds.slice(0, 8).forEach(c => { if (c && typeof c === 'object') { ui.add({ s: clamp(Math.round(num(c.start_led, 1)), 1, STRIP), e: clamp(Math.round(num(c.end_led, STRIP)), 1, STRIP), r: num(c.red, 0), g: num(c.green, 0), b: num(c.blue, 0), w: num(c.white, 0) }); bri = clamp(Math.round(num(c.brightness, 255)), 0, 255); } });
+    ui.bri.value = bri; });
+  const c = obj.camera && typeof obj.camera === 'object' ? obj.camera : {}; extra.camera = {}; for (const k of Object.keys(c)) if (!/^(af_mode|lens|ae|ev|contrast|sharpness|zoom|saturation|hflip|vflip|ir|res|fmt|fan)$/.test(k)) extra.camera[k] = c[k];
+  setSeg('af', c.af_mode === 'manual' ? 'manual' : 'auto'); $('lens').value = Math.round(clamp(num(c.lens, 5), 0, 10) * 10);
+  setSeg('ae', c.ae === false ? 0 : 1); $('ev').value = Math.round(clamp(num(c.ev, 0), -2, 2) * 10);
+  $('contrast').value = Math.round(clamp(num(c.contrast, 1), 0, 2) * 10); $('sharp').value = Math.round(clamp(num(c.sharpness, 1), 0, 8) * 10);
+  $('zoom').value = Math.round(clamp(num(c.zoom, 0), 0, 0.8) * 100); $('gray').checked = c.saturation === 0;
+  setSeg('orient', (c.hflip ? '1' : '0') + (c.vflip ? '1' : '0')); setSeg('ir', ['off', 'on', 'flash'].includes(c.ir) ? c.ir : 'off');
+  setSeg('res', RES[c.res] ? c.res : 2592); setSeg('fmt', c.fmt === 'png' ? 'png' : 'jpeg'); $('fan').value = clamp(Math.round(num(c.fan, 0)), 0, 100);
+  const g = obj.graph_windows && typeof obj.graph_windows === 'object' ? obj.graph_windows : {};
+  const pick = (k, d) => { const allowed = [...segs[k].querySelectorAll('button')].map(b => +b.dataset.v); setSeg(k, allowed.includes(+g[k]) ? +g[k] : d); };
+  pick('durSeg', 600); pick('gDurSeg', 1800); pick('accDurSeg', 30); pick('rotDurSeg', 30);
+  setSeg('theme', obj.theme === 'light' ? 'light' : 'dark');
+  if (c.ae === false && (c.shutter != null || c.gain != null)) { extra.camera.shutter = c.shutter; extra.camera.gain = c.gain; }
+  onChange();
+}
+function loadFile(file) {
+  const msg = $('loadMsg');
+  file.text().then(t => { const obj = JSON.parse(t); if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error('not an object'); applyFile(obj); msg.textContent = `Loaded ${file.name} (${Object.keys(obj).length} settings).`; msg.style.color = 'var(--ok)'; })
+    .catch(e => { msg.textContent = `Could not read ${file.name}: ${e.message}.`; msg.style.color = 'var(--warn)'; });
+}
+$('load').addEventListener('change', e => { if (e.target.files[0]) loadFile(e.target.files[0]); e.target.value = ''; });
+const drop = $('drop');
+['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', e => { const f = e.dataTransfer.files && e.dataTransfer.files[0]; if (f) loadFile(f); });
+
+onChange();
+})();
+</script>
+</body>
+</html>

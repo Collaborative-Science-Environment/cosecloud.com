@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SciSpinner time-lapse to video</title>
+<meta name="description" content="Turn the time-lapse frames from a SciSpinner Max run into an MP4 video with an elapsed-time overlay. Encodes in your browser; nothing is uploaded.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: the frames and the preview on the left, the video settings and the output on the right.
+   Tokens are the cosecloud.com site tokens, so the tool sits with the other SciSpinner tools. */
+:root {
+  --bg: #F6F9FA; --surface: #FFFFFF; --surface-2: #EAF1F3;
+  --ink: #12303A; --ink-2: #3E5C66; --muted: #6C858D;
+  --line: #D5E0E4; --line-strong: #B7C8CE;
+  --accent: #0F7F9F; --accent-ink: #FFFFFF; --heading: #004053;
+  --warn: #C2571A; --ok: #2E7D4F;
+  --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  --radius: 4px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  color-scheme: dark; --bg: #0C1A1F; --surface: #122730; --surface-2: #17323C;
+  --ink: #E3ECEF; --ink-2: #B7C8CE; --muted: #8AA3AB; --line: #23404A; --line-strong: #345561;
+  --accent: #3FA9C7; --accent-ink: #061418; --heading: #DCEBF0; --warn: #E0803F; --ok: #5FBF85; } }
+:root[data-theme="dark"] {
+  color-scheme: dark; --bg: #0C1A1F; --surface: #122730; --surface-2: #17323C;
+  --ink: #E3ECEF; --ink-2: #B7C8CE; --muted: #8AA3AB; --line: #23404A; --line-strong: #345561;
+  --accent: #3FA9C7; --accent-ink: #061418; --heading: #DCEBF0; --warn: #E0803F; --ok: #5FBF85; }
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+[hidden] { display: none !important; }
+.wrap { max-width: 1200px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top { padding-block: 1.6rem 1rem; }
+.eyebrow { font-family: var(--mono); font-size: .76rem; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 0 0 .5rem; }
+h1 { font-size: clamp(1.6rem, 3.2vw, 2.2rem); line-height: 1.15; color: var(--heading); margin: 0 0 .5rem; font-weight: 600; text-wrap: balance; }
+.lede { color: var(--ink-2); max-width: 68ch; margin: 0; }
+a { color: var(--accent); }
+.mono { font-family: var(--mono); }
+
+.main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(300px, .8fr); gap: 1.5rem; align-items: start; padding-block: .5rem 2.5rem; }
+@media (max-width: 880px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.col { display: grid; gap: 1rem; min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+.box { padding: 1rem 1.1rem; display: grid; gap: .8rem; }
+.box h2 { font-size: .74rem; font-family: var(--mono); font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0; display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; }
+.box h2 small { font-family: var(--sans); text-transform: none; letter-spacing: 0; font-size: .84rem; font-weight: 400; }
+.field { display: grid; gap: .3rem; }
+.lab { font-weight: 500; }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem; }
+.row { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; justify-content: space-between; }
+.hint { font-size: .84rem; color: var(--muted); margin: 0; }
+.hint.warn { color: var(--warn); }
+.hint.ok { color: var(--ok); }
+input[type=range] { width: 100%; accent-color: var(--accent); margin: 0; }
+input[type=number], input[type=text], select { width: 100%; font: inherit; font-family: var(--mono); font-variant-numeric: tabular-nums; padding: .3rem .45rem; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--ink); }
+.seg { display: flex; flex-wrap: wrap; gap: .4rem; }
+.seg button, .btn { font: inherit; font-size: .86rem; padding: .35rem .7rem; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--ink-2); cursor: pointer; }
+.seg button[aria-pressed="true"], .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.primary { font-weight: 500; }
+.btn:disabled, .seg button:disabled { opacity: .5; cursor: default; }
+.switch { display: inline-flex; align-items: center; gap: .5rem; cursor: pointer; font-weight: 500; }
+.switch input { width: 1.05rem; height: 1.05rem; accent-color: var(--accent); margin: 0; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sl { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .6rem; align-items: center; }
+.sv { font-family: var(--mono); font-size: .84rem; color: var(--ink-2); min-width: 4rem; text-align: right; }
+.vu { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .5rem; align-items: center; }
+
+.drop { border: 1px dashed var(--line-strong); border-radius: var(--radius); padding: 1.4rem 1rem; text-align: center; color: var(--muted); display: grid; gap: .5rem; justify-items: center; cursor: pointer; }
+.drop.over { border-color: var(--accent); color: var(--accent); background: var(--surface-2); }
+.drop strong { color: var(--heading); font-weight: 500; }
+.drop .btns { display: flex; gap: .5rem; flex-wrap: wrap; justify-content: center; }
+.stage { position: relative; background: #000; border-radius: var(--radius); overflow: hidden; aspect-ratio: 4 / 3; display: grid; place-items: center; }
+.stage canvas, .stage video { width: 100%; height: 100%; object-fit: contain; display: block; }
+.stage .empty { color: #8AA3AB; font-family: var(--mono); font-size: .8rem; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .5rem .9rem; margin: 0; }
+.facts div { display: grid; gap: .05rem; }
+.facts dt { font-family: var(--mono); font-size: .72rem; color: var(--muted); }
+.facts dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--heading); font-size: .95rem; }
+.out { position: sticky; top: 1rem; display: grid; gap: 1rem; }
+@media (max-width: 880px) { .out { position: static; } }
+progress { width: 100%; height: .6rem; accent-color: var(--accent); }
+details.method { padding-block: 0 2.5rem; color: var(--ink-2); }
+details.method summary { cursor: pointer; color: var(--heading); font-weight: 500; }
+details.method p, details.method li { max-width: 80ch; }
+</style>
+</head>
+<body>
+
+<header class="top"><div class="wrap">
+  <p class="eyebrow"><a href="/tools/" style="color:inherit;text-decoration:none">Tools</a> &middot; SciSpinner Max</p>
+  <h1>Time-lapse to video</h1>
+  <p class="lede">Turn the frames in a run's <span class="mono">timelapse/</span> folder into an MP4 with an elapsed-time overlay. Drop in the folder, or the whole session folder so the run's interval and start time are read from <span class="mono">experiment.json</span>. The video is encoded in your browser; nothing is uploaded.</p>
+</div></header>
+
+<div class="wrap main">
+  <div class="col">
+    <section class="panel box" aria-label="Frames">
+      <h2>Frames <small id="srcName"></small></h2>
+      <div class="drop" id="drop">
+        <strong>Drop the <span class="mono">timelapse/</span> folder or the session folder here</strong>
+        <span>JPEG or PNG frames named <span class="mono">&lt;session&gt;_00001.jpg</span>, plus <span class="mono">experiment.json</span> if you have it.</span>
+        <div class="btns">
+          <button class="btn" type="button" id="pickDir">Choose a folder…</button>
+          <button class="btn" type="button" id="pickFiles">Choose files…</button>
+          <button class="btn" type="button" id="sample">Try sample frames</button>
+        </div>
+        <input type="file" id="inDir" webkitdirectory multiple hidden>
+        <input type="file" id="inFiles" accept=".jpg,.jpeg,.png,.json,image/jpeg,image/png,application/json" multiple hidden>
+      </div>
+      <dl class="facts" id="facts" hidden>
+        <div><dt>frames</dt><dd id="fFrames">—</dd></div>
+        <div><dt>frame size</dt><dd id="fSize">—</dd></div>
+        <div><dt>interval</dt><dd id="fInt">—</dd></div>
+        <div><dt>run covered</dt><dd id="fSpan">—</dd></div>
+        <div><dt>started</dt><dd id="fStart">—</dd></div>
+      </dl>
+      <p class="hint" id="srcHint"></p>
+    </section>
+
+    <section class="panel box" aria-label="Preview">
+      <h2>Preview <small id="pvLabel"></small></h2>
+      <div class="stage" id="stage"><canvas id="pv" hidden></canvas><span class="empty" id="pvEmpty">No frames loaded</span></div>
+      <div class="sl"><input id="scrub" type="range" min="0" max="0" value="0" step="1" aria-label="Frame" disabled><span class="sv" id="scrubV">—</span></div>
+      <div class="row">
+        <div class="seg"><button class="btn" type="button" id="playPv" disabled>Play preview</button></div>
+        <p class="hint">The preview plays at the chosen frame rate from the files directly, so it may stutter on large frames; the encoded video will not.</p>
+      </div>
+    </section>
+  </div>
+
+  <aside class="out">
+    <section class="panel box" aria-label="Video settings">
+      <h2>Video</h2>
+      <div class="two">
+        <div class="field"><span class="lab">Frame rate</span><div class="vu"><input id="fps" type="number" min="1" max="60" step="1" value="24"><span class="hint">fps</span></div></div>
+        <div class="field"><span class="lab">Use every</span><div class="vu"><input id="nth" type="number" min="1" max="999" step="1" value="1"><span class="hint">frame(s)</span></div></div>
+      </div>
+      <div class="field"><span class="lab">Output size</span><div class="seg" id="size"><button type="button" data-v="1280" aria-pressed="true">720p</button><button type="button" data-v="1920" aria-pressed="false">1080p</button><button type="button" data-v="0" aria-pressed="false">Original</button></div><p class="hint" id="sizeHint"></p></div>
+      <div class="field"><span class="lab">Quality</span><div class="seg" id="q"><button type="button" data-v="0.08" aria-pressed="false">Small file</button><button type="button" data-v="0.15" aria-pressed="true">Standard</button><button type="button" data-v="0.3" aria-pressed="false">High</button></div></div>
+      <div class="two">
+        <div class="field"><span class="lab">From frame</span><input id="from" type="number" min="1" step="1" value="1" disabled></div>
+        <div class="field"><span class="lab">To frame</span><input id="to" type="number" min="1" step="1" value="1" disabled></div>
+      </div>
+      <div class="field"><span class="lab">Overlay</span><div class="seg" id="ov"><button type="button" data-v="elapsed" aria-pressed="true">Elapsed time</button><button type="button" data-v="clock" aria-pressed="false">Date and time</button><button type="button" data-v="frame" aria-pressed="false">Frame number</button><button type="button" data-v="none" aria-pressed="false">None</button></div></div>
+      <div class="two">
+        <div class="field"><span class="lab">Overlay position</span><div class="seg" id="pos"><button type="button" data-v="bl" aria-pressed="true">Bottom left</button><button type="button" data-v="br" aria-pressed="false">Bottom right</button><button type="button" data-v="tl" aria-pressed="false">Top left</button><button type="button" data-v="tr" aria-pressed="false">Top right</button></div></div>
+        <div class="field" style="align-content:start"><span class="lab">Overlay text</span><input id="label" type="text" placeholder="session name" maxlength="60"></div>
+      </div>
+      <label class="switch" style="font-weight:400"><input type="checkbox" id="nameOn" checked> Show the session name with the overlay</label>
+      <dl class="facts">
+        <div><dt>video length</dt><dd id="oLen">—</dd></div>
+        <div><dt>speed-up</dt><dd id="oSpeed">—</dd></div>
+        <div><dt>1 s of video</dt><dd id="oSec">—</dd></div>
+        <div><dt>output</dt><dd id="oDim">—</dd></div>
+      </dl>
+    </section>
+
+    <section class="panel box" aria-label="Output">
+      <h2>Output</h2>
+      <button class="btn primary" type="button" id="go" disabled>Encode video</button>
+      <progress id="prog" value="0" max="1" hidden></progress>
+      <p class="hint" id="status">Load frames to begin.</p>
+      <div id="result" hidden style="display:grid;gap:.6rem">
+        <div class="stage" style="aspect-ratio:auto"><video id="outVid" controls playsinline></video></div>
+        <a class="btn primary" id="dl" download>Download video</a>
+        <p class="hint" id="resHint"></p>
+      </div>
+    </section>
+  </aside>
+</div>
+
+<details class="wrap method">
+  <summary>How it works</summary>
+  <p>The instrument saves one still per interval into <span class="mono">sessions/&lt;name&gt;/timelapse/</span>, numbered in capture order, and records the interval and start time in <span class="mono">experiment.json</span>. This page reads those files, draws each frame at the output size with the overlay, and encodes the sequence with the browser's own H.264 encoder (WebCodecs), muxing into an MP4 that plays anywhere. On a browser without WebCodecs it falls back to recording the preview canvas, which gives a WebM file instead.</p>
+  <p>The elapsed time is the frame number times the interval, measured from the run start. The instrument keeps its capture schedule anchored to the start time rather than to the previous capture, so this stays accurate over a long run; a capture that failed (noted in <span class="mono">events.csv</span>) is skipped in the numbering, so after one the overlay runs early by one interval.</p>
+  <p>Frames are decoded one at a time, so a run of several thousand full-resolution stills is fine; the file size depends on the output size, frame rate and quality. A 24-hour run at 5-minute intervals is 289 frames, about 12 seconds of video at 24 fps.</p>
+  <p>Uses <a href="https://github.com/Vanilagy/mp4-muxer" rel="noopener">mp4-muxer</a> (MIT). Nothing leaves your browser.</p>
+</details>
+
+<footer class="wrap" style="padding-block:0 2.5rem;font-size:.82rem;color:var(--muted)">Time-lapse to video v1.0 &middot; Collaborative Science Environment Inc. &middot; Open source, GPL-3.0 &middot; Nothing leaves your browser.</footer>
+
+<script type="module">
+import { Muxer, ArrayBufferTarget } from '/assets/vendor/mp4-muxer/mp4-muxer.mjs';
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const canEncode = typeof VideoEncoder !== 'undefined' && typeof VideoFrame !== 'undefined';
+
+/* ---- state ---- */
+let frames = [];                 // [{file, n, name}] sorted by capture number
+let meta = { name: '', interval: 0, started: null, source: '' };
+let firstDim = null;             // [w, h] of the first frame
+let outW = 0, outH = 0;
+let playing = null;
+
+/* ---- segmented buttons ---- */
+const segs = {};
+document.querySelectorAll('.seg[id]').forEach(seg => { segs[seg.id] = seg;
+  seg.querySelectorAll('button[data-v]').forEach(b => b.addEventListener('click', () => { setSeg(seg.id, b.dataset.v); update(); })); });
+const getSeg = k => { const b = segs[k].querySelector('[aria-pressed="true"]'); return b ? b.dataset.v : null; };
+const setSeg = (k, v) => segs[k].querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === String(v))));
+
+/* ---- loading ---- */
+const drop = $('drop');
+$('pickDir').addEventListener('click', () => $('inDir').click());
+$('pickFiles').addEventListener('click', () => $('inFiles').click());
+$('inDir').addEventListener('change', e => { ingest([...e.target.files]); e.target.value = ''; });
+$('inFiles').addEventListener('change', e => { ingest([...e.target.files]); e.target.value = ''; });
+['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+drop.addEventListener('drop', async e => {
+  const items = [...(e.dataTransfer.items || [])], files = [];
+  const walk = entry => new Promise(res => {
+    if (entry.isFile) entry.file(f => { files.push(Object.assign(f, { _path: entry.fullPath })); res(); }, res);
+    else if (entry.isDirectory) { const r = entry.createReader(); const all = [];
+      const read = () => r.readEntries(async es => { if (!es.length) { for (const x of all) await walk(x); res(); } else { all.push(...es); read(); } }, res); read(); }
+    else res();
+  });
+  const entries = items.map(i => i.webkitGetAsEntry && i.webkitGetAsEntry()).filter(Boolean);
+  if (entries.length) { for (const en of entries) await walk(en); } else files.push(...e.dataTransfer.files);
+  ingest(files);
+});
+const FRAME_RE = /^(.*)_(\d{3,})\.(jpe?g|png)$/i;
+async function ingest(files) {
+  stopPreview();
+  const imgs = [], jsons = [];
+  for (const f of files) {
+    const path = f._path || f.webkitRelativePath || f.name;
+    if (/experiment\.json$/i.test(f.name)) jsons.push(f);
+    else if (/\.(jpe?g|png)$/i.test(f.name) && /(^|\/)timelapse\//i.test(path) || /\.(jpe?g|png)$/i.test(f.name) && !/(^|\/)(captures|thumbs?)\//i.test(path)) imgs.push(f);
+  }
+  if (!imgs.length) { $('srcHint').textContent = 'No JPEG or PNG frames found in what was dropped.'; $('srcHint').className = 'hint warn'; return; }
+  frames = imgs.map(f => { const m = f.name.match(FRAME_RE); return { file: f, n: m ? parseInt(m[2], 10) : NaN, stem: m ? m[1] : f.name.replace(/\.[^.]+$/, '') }; });
+  const numbered = frames.every(x => !isNaN(x.n));
+  frames.sort((a, b) => numbered ? a.n - b.n : a.file.name.localeCompare(b.file.name, undefined, { numeric: true }));
+  if (!numbered) frames.forEach((x, i) => x.n = i + 1);
+  meta = { name: frames[0].stem, interval: 0, started: null, source: 'file names' };
+  if (jsons.length) { try { const j = JSON.parse(await jsons[0].text());
+      meta.interval = +j.interval || 0; meta.started = j.started ? new Date(j.started) : null; if (j.name) meta.name = j.name; meta.source = 'experiment.json';
+    } catch (e) { console.warn('experiment.json', e); } }
+  const bmp = await createImageBitmap(frames[0].file, { imageOrientation: 'from-image' }); firstDim = [bmp.width, bmp.height]; bmp.close();
+  $('fFrames').textContent = frames.length + (numbered ? ` (${frames[0].n}–${frames[frames.length - 1].n})` : '');
+  $('fSize').textContent = `${firstDim[0]} × ${firstDim[1]}`;
+  $('fInt').textContent = meta.interval ? fmtDur(meta.interval) : 'unknown';
+  $('fSpan').textContent = meta.interval ? fmtDur(meta.interval * (frames[frames.length - 1].n - frames[0].n)) : '—';
+  $('fStart').textContent = meta.started ? meta.started.toLocaleString() : '—';
+  $('facts').hidden = false; $('srcName').textContent = meta.name;
+  $('srcHint').className = 'hint';
+  $('srcHint').textContent = meta.interval ? `Interval and start time from ${meta.source}.` : 'No experiment.json: set the interval below for the elapsed-time overlay, or use the frame-number overlay.';
+  $('intRow').hidden = !!meta.interval;
+  $('from').disabled = $('to').disabled = false; $('from').max = $('to').max = frames.length; $('from').value = 1; $('to').value = frames.length;
+  $('scrub').disabled = false; $('scrub').max = frames.length - 1; $('scrub').value = 0; $('playPv').disabled = false;
+  $('label').placeholder = meta.name; $('go').disabled = false; $('result').hidden = true; $('status').textContent = canEncode ? 'Ready to encode.' : 'This browser has no WebCodecs: the output will be a WebM recording of the preview.';
+  update(); showFrame(0);
+}
+
+$('sample').addEventListener('click', async e => {
+  e.stopPropagation(); const b = $('sample'); b.disabled = true; b.textContent = 'Loading sample…';
+  try {   // 24 stills from a germination run on a SciSpinner Max, 1296 px wide
+    const files = await Promise.all(Array.from({ length: 24 }, (_, i) => { const n = `germination_${String(i + 1).padStart(5, '0')}.jpg`;
+      return fetch(`/assets/tools/sample/${n}`).then(r => { if (!r.ok) throw new Error(n); return r.blob(); }).then(bl => new File([bl], n, { type: 'image/jpeg' })); }));
+    await ingest(files); setSeg('ov', 'frame'); update();
+  } catch (err) { $('srcHint').textContent = 'The sample frames could not be loaded.'; $('srcHint').className = 'hint warn'; }
+  b.disabled = false; b.textContent = 'Try sample frames';
+});
+
+/* ---- settings ---- */
+const intervalInput = document.createElement('div'); intervalInput.className = 'field'; intervalInput.id = 'intRow'; intervalInput.hidden = true;
+intervalInput.innerHTML = '<span class="lab">Capture interval</span><div class="vu"><input id="intS" type="number" min="1" step="1" value="300"><span class="hint">seconds</span></div>';
+$('fps').closest('.two').before(intervalInput);
+['fps', 'nth', 'from', 'to', 'label', 'nameOn', 'intS'].forEach(id => $(id).addEventListener('input', update));
+const fmtDur = s => { s = Math.round(s); const d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), x = s % 60;
+  return d ? `${d} d ${h} h ${m} min` : h ? `${h} h ${m} min` : m ? `${m} min ${x} s` : `${x} s`; };
+const fmtHMS = s => { s = Math.max(0, Math.round(s)); const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), x = s % 60; const d = Math.floor(h / 24);
+  return (d ? `${d}d ` : '') + `${String(h % 24).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(x).padStart(2, '0')}`; };
+const interval = () => meta.interval || +$('intS').value || 0;
+function selection() {
+  const nth = clamp(Math.round(+$('nth').value) || 1, 1, 999);
+  const a = clamp(Math.round(+$('from').value) || 1, 1, frames.length), b = clamp(Math.round(+$('to').value) || frames.length, a, frames.length);
+  const sel = []; for (let i = a - 1; i < b; i += nth) sel.push(i); return sel;
+}
+function dims() {
+  if (!firstDim) return [0, 0];
+  const target = +getSeg('size'); let [w, h] = firstDim;
+  if (target && w > target) { h = Math.round(h * target / w); w = target; }
+  return [w & ~1, h & ~1];      // H.264 wants even dimensions
+}
+function update() {
+  if (!frames.length) return;
+  const fps = clamp(Math.round(+$('fps').value) || 24, 1, 60), sel = selection(); [outW, outH] = dims();
+  const nth = clamp(Math.round(+$('nth').value) || 1, 1, 999), iv = interval();
+  $('oLen').textContent = `${(sel.length / fps).toFixed(1)} s (${sel.length} frames)`;
+  $('oSpeed').textContent = iv ? `${Math.round(iv * nth * fps).toLocaleString()}×` : '—';
+  $('oSec').textContent = iv ? fmtDur(iv * nth * fps) + ' of run' : '—';
+  $('oDim').textContent = `${outW} × ${outH} @ ${fps} fps`;
+  $('sizeHint').textContent = outW === firstDim[0] ? 'Frames are used at their own size.' : `Scaled from ${firstDim[0]} × ${firstDim[1]}.`;
+  showFrame(+$('scrub').value);
+}
+
+/* ---- drawing ---- */
+const pv = $('pv'), ctx = pv.getContext('2d');
+async function drawFrame(idx, canvas, c, w, h) {
+  const f = frames[idx];
+  const bmp = await createImageBitmap(f.file, { imageOrientation: 'from-image', resizeWidth: w, resizeHeight: h, resizeQuality: 'high' });
+  c.drawImage(bmp, 0, 0, w, h); bmp.close();
+  const mode = getSeg('ov'); if (mode === 'none') return;
+  const iv = interval(), t = (f.n - frames[0].n) * iv;
+  let text = mode === 'frame' ? `frame ${f.n}` : mode === 'clock' ? (meta.started && iv ? new Date(meta.started.getTime() + t * 1000).toLocaleString() : (iv ? '+' + fmtHMS(t) : `frame ${f.n}`)) : (iv ? '+' + fmtHMS(t) : `frame ${f.n}`);
+  const label = $('nameOn').checked ? ($('label').value.trim() || meta.name) : '';
+  const px = Math.max(14, Math.round(h / 28)), pad = Math.round(px * .7);
+  c.font = `500 ${px}px "IBM Plex Mono", Consolas, monospace`; c.textBaseline = 'top';
+  const lines = label ? [label, text] : [text], tw = Math.max(...lines.map(l => c.measureText(l).width)), th = lines.length * px * 1.25;
+  const pos = getSeg('pos'), x = pos.endsWith('l') ? pad : w - pad - tw - pad, y = pos.startsWith('t') ? pad : h - pad - th - pad;
+  c.fillStyle = 'rgba(0,0,0,.55)'; c.fillRect(x - pad / 2, y - pad / 2, tw + pad * 1.5, th + pad);
+  c.fillStyle = '#fff'; lines.forEach((l, i) => c.fillText(l, x + pad / 2, y + i * px * 1.25));
+}
+let showing = 0;
+async function showFrame(idx) {
+  if (!frames.length) return; const my = ++showing;
+  const [w, h] = dims(); const pw = Math.min(w, 1280), ph = Math.round(h * pw / w);
+  if (pv.width !== pw || pv.height !== ph) { pv.width = pw; pv.height = ph; }
+  $('stage').style.aspectRatio = `${w} / ${h}`;
+  try { await drawFrame(idx, pv, ctx, pw, ph); } catch (e) { console.warn(e); }
+  if (my !== showing) return;
+  pv.hidden = false; $('pvEmpty').hidden = true;
+  $('scrubV').textContent = `${idx + 1} / ${frames.length}`; $('pvLabel').textContent = frames[idx].file.name;
+}
+$('scrub').addEventListener('input', () => { stopPreview(); showFrame(+$('scrub').value); });
+function stopPreview() { if (playing) { clearTimeout(playing); playing = null; $('playPv').textContent = 'Play preview'; } }
+$('playPv').addEventListener('click', () => {
+  if (playing) return stopPreview();
+  const sel = selection(), fps = clamp(Math.round(+$('fps').value) || 24, 1, 60); let i = 0;
+  $('playPv').textContent = 'Stop';
+  const tick = async () => { if (i >= sel.length) i = 0; $('scrub').value = sel[i]; await showFrame(sel[i]); i++; playing = setTimeout(tick, 1000 / fps); };
+  tick();
+});
+
+/* ---- encoding ---- */
+$('go').addEventListener('click', async () => {
+  stopPreview();
+  const sel = selection(), fps = clamp(Math.round(+$('fps').value) || 24, 1, 60); [outW, outH] = dims();
+  const bpp = +getSeg('q'), bitrate = Math.round(outW * outH * fps * bpp);
+  const prog = $('prog'), status = $('status');
+  $('go').disabled = true; prog.hidden = false; prog.value = 0; $('result').hidden = true;
+  const canvas = new OffscreenCanvas(outW, outH), c = canvas.getContext('2d');
+  const name = ($('label').value.trim() || meta.name || 'timelapse').replace(/[^\w.-]+/g, '_');
+  let codecNote = '';
+  try {
+    let blob, ext;
+    if (canEncode) {
+      // H.264 first (plays everywhere, including QuickTime and PowerPoint); VP9 or AV1 in MP4 if the
+      // browser has no H.264 encoder (some Linux builds), with a note in the result.
+      const pick = async () => {
+        const tries = [['avc1.640033', 'avc'], ['avc1.64002A', 'avc'], ['avc1.640028', 'avc'], ['avc1.4D4028', 'avc'], ['avc1.42E01F', 'avc'], ['vp09.00.40.08', 'vp9'], ['vp09.00.10.08', 'vp9'], ['av01.0.08M.08', 'av1']];
+        for (const [codec, kind] of tries) {
+          const cfg = { codec, width: outW, height: outH, bitrate, framerate: fps }; if (kind === 'avc') cfg.avc = { format: 'avc' };
+          try { if ((await VideoEncoder.isConfigSupported(cfg)).supported) return [codec, kind, cfg]; } catch (e) { /* unknown codec string: next */ }
+        } throw new Error('this browser has no video encoder for this size');
+      };
+      const [codec, kind, cfg] = await pick();
+      const muxer = new Muxer({ target: new ArrayBufferTarget(), video: { codec: kind, width: outW, height: outH, frameRate: fps }, fastStart: 'in-memory' });
+      let err = null;
+      const enc = new VideoEncoder({ output: (chunk, m) => muxer.addVideoChunk(chunk, m), error: e => { err = e; } });
+      enc.configure({ ...cfg, latencyMode: 'quality' });
+      codecNote = kind === 'avc' ? '' : ` · ${kind.toUpperCase()} in MP4 (this browser has no H.264 encoder); plays in Chrome, Edge and Firefox, not in QuickTime`;
+      const us = 1e6 / fps;
+      for (let i = 0; i < sel.length; i++) {
+        if (err) throw err;
+        await drawFrame(sel[i], canvas, c, outW, outH);
+        const vf = new VideoFrame(canvas, { timestamp: Math.round(i * us), duration: Math.round(us) });
+        enc.encode(vf, { keyFrame: i % (fps * 2) === 0 }); vf.close();
+        while (enc.encodeQueueSize > 4) await new Promise(r => setTimeout(r, 5));
+        prog.value = (i + 1) / sel.length; status.textContent = `Encoding frame ${i + 1} of ${sel.length}…`;
+      }
+      await enc.flush(); enc.close(); muxer.finalize();
+      blob = new Blob([muxer.target.buffer], { type: 'video/mp4' }); ext = 'mp4';
+    } else {
+      // Fallback: record the drawn frames from a visible canvas with MediaRecorder (WebM).
+      const vis = document.createElement('canvas'); vis.width = outW; vis.height = outH; const vc = vis.getContext('2d');
+      const stream = vis.captureStream(0), track = stream.getVideoTracks()[0];
+      const type = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(t => MediaRecorder.isTypeSupported(t));
+      const rec = new MediaRecorder(stream, { mimeType: type, videoBitsPerSecond: bitrate }), parts = [];
+      rec.ondataavailable = e => parts.push(e.data); rec.start();
+      for (let i = 0; i < sel.length; i++) {
+        await drawFrame(sel[i], vis, vc, outW, outH); track.requestFrame && track.requestFrame();
+        await new Promise(r => setTimeout(r, 1000 / fps));
+        prog.value = (i + 1) / sel.length; status.textContent = `Recording frame ${i + 1} of ${sel.length}…`;
+      }
+      await new Promise(r => { rec.onstop = r; rec.stop(); });
+      blob = new Blob(parts, { type: 'video/webm' }); ext = 'webm';
+    }
+    const url = URL.createObjectURL(blob);
+    $('outVid').src = url; $('dl').href = url; $('dl').download = `${name}_timelapse.${ext}`;
+    $('resHint').textContent = `${(blob.size / 1048576).toFixed(1)} MB · ${outW} × ${outH} · ${sel.length} frames at ${fps} fps · ${ext.toUpperCase()}${codecNote}`;
+    $('result').hidden = false; status.textContent = 'Done.';
+  } catch (e) {
+    console.error(e); status.textContent = 'Encoding failed: ' + (e.message || e); status.className = 'hint warn';
+  }
+  prog.hidden = true; $('go').disabled = false;
+});
+if (!canEncode) $('status').textContent = 'This browser has no WebCodecs video encoder; the output will be a WebM recording instead of an MP4. Chrome, Edge and Safari produce MP4.';
+</script>
+</body>
+</html>

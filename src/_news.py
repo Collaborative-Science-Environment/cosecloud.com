@@ -60,6 +60,11 @@ def md_to_html(text):
             flush_para(); flush_list(); flush_quote()
             level = min(len(m.group(1)) + 1, 4)      # '#' in a post becomes h2; the page title is the h1
             out.append(f"<h{level}>{_inline(m.group(2))}</h{level}>"); continue
+        m = re.match(r"^!video\s+(\S+)\s+(\S+)(?:\s+(.*))?$", line)   # !video <src.mp4> <poster.jpg> caption
+        if m:
+            flush_para(); flush_list(); flush_quote()
+            cap = f"<figcaption>{_inline(m.group(3))}</figcaption>" if m.group(3) else ""
+            out.append(f'<figure class="post-video"><video src="{m.group(1)}" poster="{m.group(2)}" controls muted loop playsinline preload="none"></video>{cap}</figure>'); continue
         if re.match(r"^(-{3,}|\*{3,})$", line):
             flush_para(); flush_list(); flush_quote(); out.append("<hr>"); continue
         m = re.match(r"^\s*[-*]\s+(.*)$", line)
