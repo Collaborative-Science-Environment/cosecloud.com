@@ -82,18 +82,19 @@ def main():
         "/tools/clinostat-simulator.html /tools/clinostat-simulator 301\n/simulator /tools/clinostat-simulator 301\n"
         "/tools/run-setup.html /tools/run-setup 301\n/setup /tools/run-setup 301\n"
         "/tools/timelapse-video.html /tools/timelapse-video 301\n/timelapse /tools/timelapse-video 301\n"
-        "/blog / 301\n/news/index.html /news/ 301\n/feed /news/feed.xml 301\n"
+        "/blog / 301\n/posts/index.html /posts/ 301\n/feed /posts/feed.xml 301\n"
+        "/news/ /posts/ 301\n/news /posts/ 301\n/news/feed.xml /posts/feed.xml 301\n/news/* /posts/:splat 301\n"
         "/datasheet /downloads/SciSpinner_Max_Datasheet_2026-10.pdf 302\n")
     (DIST / "tools").mkdir()
-    # News: posts/*.md -> /news/<slug>, /news/ and the RSS feed
-    (DIST / "news").mkdir()
+    # Posts: posts/*.md -> /posts/<slug>, /posts/ and the RSS feed
+    (DIST / "posts").mkdir()
     for p in POSTS:
-        meta = dict(title=f"{p['title']} — COSE", description=p["summary"] or p["title"], current="news")
-        (DIST / "news" / f"{p['slug']}.html").write_text(page("news", meta, body=_news.post_body(p)))
-    (DIST / "news" / "index.html").write_text(page("news", dict(title="News — COSE",
+        meta = dict(title=f"{p['title']} — COSE", description=p["summary"] or p["title"], current="posts")
+        (DIST / "posts" / f"{p['slug']}.html").write_text(page("posts", meta, body=_news.post_body(p)))
+    (DIST / "posts" / "index.html").write_text(page("posts", dict(title="Posts — COSE",
         description="Updates from Collaborative Science Environment: software releases, instruments and deliveries.",
-        current="news"), body=_news.index_body(POSTS)))
-    (DIST / "news" / "feed.xml").write_text(_news.feed(POSTS))
+        current="posts"), body=_news.index_body(POSTS)))
+    (DIST / "posts" / "feed.xml").write_text(_news.feed(POSTS))
     for name, meta in PAGES.items():
         (DIST / meta.get("out", f"{name}.html")).write_text(page(name, meta))
     # Standalone tools: served as-is from tools/, with a thin site bar and favicon added at build time.

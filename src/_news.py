@@ -1,4 +1,4 @@
-"""News posts: Markdown files in posts/ -> /news/<slug>, /news/, /news/feed.xml and a home-page block.
+"""Posts: Markdown files in posts/ -> /posts/<slug>, /posts/, /posts/feed.xml and a home-page block.
 
 A post is posts/YYYY-MM-DD-slug.md with a short header, then Markdown:
 
@@ -51,8 +51,25 @@ def md_to_html(text):
             out.append("<blockquote><p>" + _inline(" ".join(quote)) + "</p></blockquote>")
             quote.clear()
 
-    for raw in text.splitlines():
+    lines = text.splitlines()
+    i = -1
+    while i + 1 < len(lines):
+        i += 1
+        raw = lines[i]
         line = raw.rstrip()
+        # pipe table: header row, a |---| separator row, then body rows
+        if line.startswith("|") and i + 1 < len(lines) and re.match(r"^\|[\s:|-]+\|$", lines[i + 1].strip()):
+            flush_para(); flush_list(); flush_quote()
+            cells = lambda r: [c.strip() for c in r.strip().strip("|").split("|")]
+            head = cells(line); body = []
+            i += 2
+            while i < len(lines) and lines[i].strip().startswith("|"):
+                body.append(cells(lines[i])); i += 1
+            i -= 1
+            th = "".join(f'<th scope="col">{_inline(c)}</th>' for c in head)
+            trs = "".join("<tr>" + "".join((f'<th scope="row">{_inline(c)}</th>' if j == 0 else f"<td>{_inline(c)}</td>") for j, c in enumerate(r)) + "</tr>" for r in body)
+            out.append(f'<div class="table-wrap"><table><thead><tr>{th}</tr></thead><tbody>{trs}</tbody></table></div>')
+            continue
         if not line.strip():
             flush_para(); flush_list(); flush_quote(); continue
         m = re.match(r"^(#{1,4})\s+(.*)$", line)
@@ -86,8 +103,8 @@ def md_to_html(text):
     return "\n".join(out)
 
 
-# One tag per post (the 'tag:' header line); the News page can filter by it. 'pinned: yes' keeps a post at the top.
-TAGS = {"software": "Software", "tools": "Tools", "history": "History", "events": "Events", "company": "Company"}
+# One tag per post (the 'tag:' header line); the Posts page can filter by it. 'pinned: yes' keeps a post at the top.
+TAGS = {"software": "Software", "tools": "Tools", "engineering": "Engineering", "history": "History", "events": "Events", "company": "Company"}
 
 
 def tag_html(p):
@@ -113,7 +130,7 @@ def load_posts(root):
         posts.append(dict(slug=slug, title=meta["title"], date=date, summary=meta.get("summary", ""),
                           author=meta.get("author", "Jerry Miao"), tag=tag,
                           pinned=meta.get("pinned", "").strip().lower() in ("yes", "true", "1"),
-                          html=md_to_html(body.strip()), url=f"/news/{slug}"))
+                          html=md_to_html(body.strip()), url=f"/posts/{slug}"))
     posts.sort(key=lambda p: (p["pinned"], p["date"]), reverse=True)   # pinned first, then newest
     return posts
 
@@ -126,13 +143,13 @@ def post_body(p):
     return f"""<main>
 <article class="post">
   <div class="wrap">
-    <p class="eyebrow"><a href="/news/">News</a> &middot; <time datetime="{p['date']:%Y-%m-%d}">{fmt_date(p['date'])}</time> &middot; {_html.escape(p['author'])}{' &middot; ' + tag_html(p) if p.get('tag') else ''}</p>
+    <p class="eyebrow"><a href="/posts/">Posts</a> &middot; <time datetime="{p['date']:%Y-%m-%d}">{fmt_date(p['date'])}</time> &middot; {_html.escape(p['author'])}{' &middot; ' + tag_html(p) if p.get('tag') else ''}</p>
     <h1>{_html.escape(p['title'])}</h1>
     {f'<p class="lede">{_inline(p["summary"])}</p>' if p['summary'] else ''}
     <div class="post-body">
 {p['html']}
     </div>
-    <p class="post-foot"><a href="/news/">&larr; All news</a></p>
+    <p class="post-foot"><a href="/posts/">&larr; All posts</a></p>
   </div>
 </article>
 </main>
@@ -153,9 +170,9 @@ def index_body(posts):
 <section class="hero" style="padding-bottom:1rem">
   <div class="wrap" style="grid-template-columns:minmax(0,1fr)">
     <div class="hero-copy" style="max-width:720px">
-      <p class="eyebrow">News</p>
+      <p class="eyebrow">Posts</p>
       <h1>COSE updates</h1>
-      <p class="lede">Software releases, new instruments, deliveries and engineering updates from COSE. <a href="/news/feed.xml">RSS feed</a>.</p>
+      <p class="lede">Software releases, new instruments, deliveries and engineering updates from COSE. <a href="/posts/feed.xml">RSS feed</a>.</p>
     </div>
   </div>
 </section>
@@ -187,9 +204,9 @@ def home_block(posts, n=3):
   <div class="wrap">
     <div class="grid-2">
       <div>
-        <p class="eyebrow">News</p>
+        <p class="eyebrow">Posts</p>
         <h2>Latest from COSE</h2>
-        <p style="margin-top:1.25rem"><a class="more" href="/news/">All news &rarr;</a></p>
+        <p style="margin-top:1.25rem"><a class="more" href="/posts/">All posts &rarr;</a></p>
       </div>
       {list_items(posts[:n], "post-list compact")}
     </div>
@@ -210,8 +227,8 @@ def feed(posts):
   </item>""" for p in sorted(posts, key=lambda p: p["date"], reverse=True))   # the feed is by date; pinning is a page thing
     return f"""<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0"><channel>
-  <title>COSE news</title>
-  <link>{SITE}/news/</link>
+  <title>COSE posts</title>
+  <link>{SITE}/posts/</link>
   <description>Updates from Collaborative Science Environment: software releases, instruments and deliveries.</description>
   <lastBuildDate>{now}</lastBuildDate>{items}
 </channel></rss>
