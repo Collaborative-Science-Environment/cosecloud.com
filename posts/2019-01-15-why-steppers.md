@@ -2,7 +2,7 @@ title: Choosing the motors: DC, servo or stepper
 date: 2019-01-15
 author: Jerry Miao
 tag: engineering
-summary: What each axis of a clinostat needs from its motor, the five ways it could be driven, and which one we chose.
+summary: What each clinostat axis needs from its motor, five ways it could be driven, and why we chose the one we use.
 
 Each axis of the clinostat needs a motor. Before choosing one, we wrote down what the axes actually need to do, then worked through the available ways to drive them.
 

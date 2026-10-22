@@ -1,4 +1,4 @@
-title: SciSpinner analysis tool now available online
+title: New tool: g-level analysis
 date: 2026-10-15
 author: Jerry Miao
 summary: The g-level analysis page that ships in every run folder is now hosted at cosecloud.com/tools, and software releases and other news will be posted here.

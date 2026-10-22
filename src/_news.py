@@ -172,7 +172,7 @@ def index_body(posts):
     <div class="hero-copy" style="max-width:720px">
       <p class="eyebrow">Posts</p>
       <h1>COSE updates</h1>
-      <p class="lede">Software releases, new instruments, deliveries and engineering updates from COSE. <a href="/posts/feed.xml">RSS feed</a>.</p>
+      <p class="lede">Software releases, engineering notes, new instruments, deliveries and other updates from COSE. <a href="/posts/feed.xml">RSS feed</a>.</p>
     </div>
   </div>
 </section>
