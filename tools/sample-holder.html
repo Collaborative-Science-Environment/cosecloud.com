@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SciSpinner Max sample holder generator</title>
+<meta name="description" content="Generate a printable SciSpinner Max sample holder plate with a two-stage cut-out and optional sealed magnet pockets, and download it as an STL. Runs entirely in your browser.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: the plate in 3D on the left, its settings and the export on the right.
+   Tokens are the cosecloud.com site tokens, so the tool sits with the simulator and run setup. */
+:root {
+  --bg: #F6F9FA; --surface: #FFFFFF; --surface-2: #EAF1F3;
+  --ink: #12303A; --ink-2: #3E5C66; --muted: #6C858D;
+  --line: #D5E0E4; --line-strong: #B7C8CE;
+  --accent: #0F7F9F; --accent-ink: #FFFFFF; --heading: #004053;
+  --part: #CFE3EA; --edge: #004053; --void: #C2571A; --warn: #C2571A; --ok: #2E7D4F;
+  --sans: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", "SFMono-Regular", Consolas, monospace;
+  --radius: 4px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  color-scheme: dark; --bg: #0C1A1F; --surface: #122730; --surface-2: #17323C;
+  --ink: #E3ECEF; --ink-2: #B7C8CE; --muted: #8AA3AB; --line: #23404A; --line-strong: #345561;
+  --accent: #3FA9C7; --accent-ink: #061418; --heading: #DCEBF0;
+  --part: #2B5563; --edge: #8FD0E2; --void: #E0803F; --warn: #E0803F; --ok: #5FBF85; } }
+:root[data-theme="dark"] {
+  color-scheme: dark; --bg: #0C1A1F; --surface: #122730; --surface-2: #17323C;
+  --ink: #E3ECEF; --ink-2: #B7C8CE; --muted: #8AA3AB; --line: #23404A; --line-strong: #345561;
+  --accent: #3FA9C7; --accent-ink: #061418; --heading: #DCEBF0;
+  --part: #2B5563; --edge: #8FD0E2; --void: #E0803F; --warn: #E0803F; --ok: #5FBF85; }
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+[hidden] { display: none !important; }
+.wrap { max-width: 1200px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+header.top { padding-block: 1.6rem 1rem; }
+.eyebrow { font-family: var(--mono); font-size: .76rem; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 0 0 .5rem; }
+h1 { font-size: clamp(1.6rem, 3.2vw, 2.2rem); line-height: 1.15; color: var(--heading); margin: 0 0 .5rem; font-weight: 600; text-wrap: balance; }
+.lede { color: var(--ink-2); max-width: 68ch; margin: 0; }
+.main { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 1.5rem; align-items: start; padding-block: .5rem 2rem; }
+@media (max-width: 880px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+.stage { position: relative; aspect-ratio: 4 / 3.2; max-width: 100%; }
+.stage canvas { position: absolute; inset: 0; width: 100% !important; height: 100% !important; cursor: grab; touch-action: pan-y; }
+.stage .msg { position: absolute; inset: 0; display: grid; place-items: center; padding: 1.5rem; text-align: center; font-family: var(--mono); font-size: .82rem; color: var(--muted); }
+.stage-foot { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: .5rem 1rem; padding: .55rem .9rem; border-top: 1px solid var(--line); font-family: var(--mono); font-size: .78rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.side { display: grid; gap: 1rem; min-width: 0; }
+.box { padding: 1rem 1.1rem; display: grid; gap: .75rem; }
+.box h2 { font-size: .74rem; font-family: var(--mono); font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0; }
+.field { display: grid; grid-template-columns: minmax(0, 1fr) 7.2rem; gap: .6rem; align-items: center; }
+.field label { color: var(--ink-2); }
+.unit { font-family: var(--mono); font-size: .8rem; color: var(--muted); margin-left: .3rem; }
+input[type=number], input[type=text] { width: 100%; font: inherit; font-family: var(--mono); font-variant-numeric: tabular-nums; padding: .3rem .45rem; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--bg); color: var(--ink); }
+input[type=number] { width: 4.6rem; }
+.check { display: flex; gap: .55rem; align-items: center; font-weight: 500; cursor: pointer; }
+.check input { width: 1.05rem; height: 1.05rem; accent-color: var(--accent); margin: 0; }
+.hint { font-size: .84rem; color: var(--muted); margin: 0; }
+.hint b { color: var(--ink); font-weight: 500; font-family: var(--mono); }
+.errs { margin: 0; padding-left: 1.1rem; color: var(--warn); font-size: .86rem; }
+.btn { font: inherit; font-size: .9rem; padding: .45rem .9rem; border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface); color: var(--ink-2); cursor: pointer; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.spec { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: .9rem; }
+.spec td { padding: .3rem 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+.spec td.n { text-align: right; font-family: var(--mono); color: var(--heading); white-space: nowrap; padding-left: .8rem; }
+.stat-ok { color: var(--ok); } .stat-bad { color: var(--warn); }
+.stagebox { display: grid; gap: .55rem; padding-top: .75rem; border-top: 1px solid var(--line); }
+.stagehead { display: flex; justify-content: space-between; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.stagehead h3 { margin: 0; font-size: .95rem; font-weight: 600; color: var(--heading); }
+.seg { display: flex; gap: 0; }
+.seg button { font: inherit; font-size: .84rem; padding: .28rem .7rem; border: 1px solid var(--line-strong); background: var(--surface); color: var(--ink-2); cursor: pointer; }
+.seg button:first-child { border-radius: var(--radius) 0 0 var(--radius); } .seg button:last-child { border-radius: 0 var(--radius) var(--radius) 0; } .seg button + button { border-left: 0; }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.notes { margin: 0; padding-left: 1.1rem; color: var(--muted); font-size: .84rem; }
+fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: .6rem; }
+fieldset:disabled { opacity: .45; }
+</style>
+</head>
+<body>
+
+<header class="top"><div class="wrap">
+  <p class="eyebrow"><a href="/tools/" style="color:inherit;text-decoration:none">Tools</a> &middot; SciSpinner Max</p>
+  <h1>Sample holder generator</h1>
+  <p class="lede">Generate a printable sample holder plate for the SciSpinner Max and download it as an STL. The plate matches the standard holder: outline, mounting holes and sample recess. Add a two-stage cut-out in the shape and size you need, with or without sealed magnet pockets. Everything is generated in your browser.</p>
+</div></header>
+
+<div class="wrap main">
+  <section class="panel" aria-label="Plate preview">
+    <div class="stage" id="stage"><div class="msg" id="msg">Loading the 3D preview…</div></div>
+    <div class="stage-foot">
+      <span id="dims">Ø189.0 × 4.2 mm</span>
+      <span class="seg" role="group" aria-label="Section view" id="sect"><button type="button" data-s="off" aria-pressed="true">Whole</button><button type="button" data-s="centre" aria-pressed="false">Section: centre</button><button type="button" data-s="magnet" aria-pressed="false">Section: magnets</button></span>
+    </div>
+  </section>
+
+  <div class="side">
+    <section class="panel box" aria-label="Cut-out">
+      <h2>Two-stage cut-out</h2>
+      <p class="hint">Centred on the plate. Stage 1 is a pocket in the recess floor that leaves a ledge for the sample to rest on; stage 2 is an opening through the plate inside it. Make them the same for a single straight cut.</p>
+      <div class="stagebox" id="st1">
+        <div class="stagehead"><h3>Stage 1 &middot; pocket</h3>
+          <div class="seg" role="group" aria-label="Stage 1 shape"><button type="button" data-shape="circle" aria-pressed="true">Circle</button><button type="button" data-shape="rect" aria-pressed="false">Rectangle</button></div></div>
+        <div class="field" data-for="circle"><label for="d1">Diameter</label><span><input id="d1" type="number" min="2" step="0.1" value="60"><span class="unit">mm</span></span></div>
+        <div class="field" data-for="rect" hidden><label for="w1">Width (X)</label><span><input id="w1" type="number" min="2" step="0.1" value="76"><span class="unit">mm</span></span></div>
+        <div class="field" data-for="rect" hidden><label for="h1">Length (Y)</label><span><input id="h1" type="number" min="2" step="0.1" value="26"><span class="unit">mm</span></span></div>
+        <div class="field" data-for="rect" hidden><label for="r1">Corner radius</label><span><input id="r1" type="number" min="0" step="0.1" value="1"><span class="unit">mm</span></span></div>
+        <div class="field"><label for="dp1">Depth below recess floor</label><span><input id="dp1" type="number" min="0.2" max="2.8" step="0.1" value="1.7"><span class="unit">mm</span></span></div>
+      </div>
+      <div class="stagebox" id="st2">
+        <div class="stagehead"><h3>Stage 2 &middot; through</h3>
+          <div class="seg" role="group" aria-label="Stage 2 shape"><button type="button" data-shape="circle" aria-pressed="true">Circle</button><button type="button" data-shape="rect" aria-pressed="false">Rectangle</button></div></div>
+        <label class="check" style="font-weight:400"><input type="checkbox" id="same"> Same as stage 1 (one straight cut, no ledge)</label>
+        <div class="field" data-for="circle"><label for="d2">Diameter</label><span><input id="d2" type="number" min="2" step="0.1" value="50"><span class="unit">mm</span></span></div>
+        <div class="field" data-for="rect" hidden><label for="w2">Width (X)</label><span><input id="w2" type="number" min="2" step="0.1" value="70"><span class="unit">mm</span></span></div>
+        <div class="field" data-for="rect" hidden><label for="h2">Length (Y)</label><span><input id="h2" type="number" min="2" step="0.1" value="20"><span class="unit">mm</span></span></div>
+        <div class="field" data-for="rect" hidden><label for="r2">Corner radius</label><span><input id="r2" type="number" min="0" step="0.1" value="2"><span class="unit">mm</span></span></div>
+      </div>
+      <ul class="errs" id="errs" hidden></ul>
+      <p class="hint" id="cutHint"></p>
+    </section>
+
+    <section class="panel box" aria-label="Magnet pockets">
+      <h2>Magnet pockets</h2>
+      <label class="check"><input type="checkbox" id="mag" checked> Include 4 sealed magnet pockets</label>
+      <p class="hint" id="magHint"></p>
+    </section>
+
+    <section class="panel box" aria-label="Plate">
+      <h2>Base plate</h2>
+      <table class="spec">
+        <tr><td>Outer diameter</td><td class="n">189.0 mm</td></tr>
+        <tr><td>Thickness</td><td class="n">4.2 mm</td></tr>
+        <tr><td>Sample recess</td><td class="n">Ø159.2 floor, 0.8 deep</td></tr>
+        <tr><td>Mounting holes</td><td class="n">4 × Ø4.5 on Ø178.0</td></tr>
+        <tr><td>Edge chamfer</td><td class="n">0.4 mm</td></tr>
+      </table>
+      <p class="hint">From the plate_V2 CAD model. Print it flat with the recess facing up; it needs no supports.</p>
+    </section>
+
+    <section class="panel box" aria-label="Export">
+      <h2>Export</h2>
+      <div class="field" style="grid-template-columns:auto minmax(0,1fr)"><label for="fname">Name prefix</label><input id="fname" type="text" value="sample-holder" spellcheck="false" style="width:100%"></div>
+      <p class="hint">Saves as <b id="fullName" style="word-break:break-all"></b></p>
+      <div class="row"><button class="btn primary" type="button" id="dl">Download STL</button><span class="hint" id="meshStat"></span></div>
+      <p class="hint">The settings are added to the file name: stage 1 shape, size and depth (d), stage 2 shape and size, and whether magnet pockets are included.</p>
+    </section>
+  </div>
+</div>
+
+<footer class="wrap" style="padding-block:0 2.5rem;font-size:.82rem;color:var(--muted)">Sample holder generator v1.0 &middot; Collaborative Science Environment Inc. &middot; Open source, GPL-3.0 &middot; Nothing leaves your browser.</footer>
+<script type="importmap">{"imports":{"three":"/assets/vendor/three/build/three.module.min.js","three/addons/":"/assets/vendor/three/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// --- geometry start ---
+// Sample holder plate, reproduced from plate_V2.STEP (SolidWorks 2025, mm).
+// Tool coordinates: X, Y in the plate plane (STEP x, z), Z = thickness (STEP y), bottom face at Z = 0.
+const PLATE = {
+  R: 94.5,              // outer radius
+  T: 4.2,               // thickness
+  ch: 0.4,              // 45° chamfer: bottom edge all round, top edge on the outer circle
+  // concave cut-out edge (top side; bottom side is the mirror in Y): one cubic Bézier, wall from Z 0.4 to 4.2
+  cut: [[-51.61393583861793, 79.15965909141279], [-19.037450986267487, 67.08428560033965],
+        [19.037450986267525, 67.08428560033960], [51.61393583861792, 79.15965909141283]],
+  recess: { floorR: 79.58081641154692, floorZ: 3.4, blendR: 10 },   // 0.8 mm deep, R10 blend up to Ø167 at the top face
+  holes: { x: 87.07252074636275, y: 18.42216412027210, r: 2.25, ch: 0.4 },   // 4 × Ø4.5 through, chamfered both ends
+  magnet: { x: 72.14999318854538, y: 52.10929363264173, d: 8.3, z0: 0.4, h: 3.2 }  // 4 sealed pockets, Ø8.3 × 3.2 for 8 × 3 mm magnets
+};
+
+const SEG = { arc: 120, cut: 14, floorCut: 60, rec: 72, hole: 40, mag: 56, shape: 128 };
+
+function bez(t) {
+  const [p0, p1, p2, p3] = PLATE.cut, u = 1 - t;
+  const a = u * u * u, b = 3 * u * u * t, c = 3 * u * t * t, d = t * t * t;
+  return [a * p0[0] + b * p1[0] + c * p2[0] + d * p3[0], a * p0[1] + b * p1[1] + c * p2[1] + d * p3[1]];
+}
+// parameter on the right half of the cut-out curve where the distance from the centre equals rad
+function tAtRadius(rad) {
+  let lo = 0.5, hi = 1;
+  if (Math.hypot(...bez(1)) <= rad) return 1;
+  for (let i = 0; i < 80; i++) { const m = (lo + hi) / 2; if (Math.hypot(...bez(m)) < rad) lo = m; else hi = m; }
+  return (lo + hi) / 2;
+}
+const outerR = z => z <= PLATE.T - PLATE.ch ? PLATE.R : PLATE.R - (z - (PLATE.T - PLATE.ch));
+const recessR = z => { const { floorR, floorZ, blendR } = PLATE.recess; const dz = blendR - (z - floorZ); return floorR + Math.sqrt(Math.max(0, blendR * blendR - dz * dz)); };
+
+// ---- cut-out shapes: circle { shape:'circle', d } or rectangle { shape:'rect', w, h, rc } centred on the plate ----
+function shapeLoopXY(s, n) {
+  if (s.shape === 'circle') return Array.from({ length: n }, (_, k) => { const a = 2 * Math.PI * k / n; return [s.d / 2 * Math.cos(a), s.d / 2 * Math.sin(a)]; });
+  const hw = s.w / 2, hh = s.h / 2, rc = Math.min(Math.max(0, s.rc || 0), hw, hh);
+  if (rc < 1e-6) return [[hw, -hh], [hw, hh], [-hw, hh], [-hw, -hh]];
+  const out = [], m = Math.max(4, Math.round(n / 4));
+  const corners = [[hw - rc, -hh + rc, -Math.PI / 2], [hw - rc, hh - rc, 0], [-hw + rc, hh - rc, Math.PI / 2], [-hw + rc, -hh + rc, Math.PI]];
+  for (const [cx, cy, a0] of corners) for (let k = 0; k <= m; k++) {
+    const a = a0 + Math.PI / 2 * k / m; out.push([cx + rc * Math.cos(a), cy + rc * Math.sin(a)]);
+  }
+  // drop points that coincide (corner radius equal to half the width or height)
+  return out.filter((p, i) => { const q = out[(i + 1) % out.length]; return Math.hypot(p[0] - q[0], p[1] - q[1]) > 1e-6; });
+}
+function shapeSDF(s, x, y) {   // signed distance: negative inside
+  if (s.shape === 'circle') return Math.hypot(x, y) - s.d / 2;
+  const rc = Math.min(Math.max(0, s.rc || 0), s.w / 2, s.h / 2), qx = Math.abs(x) - (s.w / 2 - rc), qy = Math.abs(y) - (s.h / 2 - rc);
+  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - rc;
+}
+const effRc = s => Math.min(Math.max(0, s.rc || 0), s.w / 2, s.h / 2);
+const sameShape = (a, b) => a.shape === b.shape && (a.shape === 'circle' ? Math.abs(a.d - b.d) < 1e-9
+  : Math.abs(a.w - b.w) < 1e-9 && Math.abs(a.h - b.h) < 1e-9 && Math.abs(effRc(a) - effRc(b)) < 1e-9);
+const shapeName = s => s.shape === 'circle' ? `Ø${+s.d.toFixed(2)}` : `${+s.w.toFixed(2)} × ${+s.h.toFixed(2)}`;
+function cutY(x) {   // height of the cut-out edge above the X axis at x (wall position), |x| <= 51.6
+  let lo = 0.5, hi = 1; x = Math.abs(x);
+  for (let i = 0; i < 60; i++) { const m = (lo + hi) / 2; if (bez(m)[0] < x) lo = m; else hi = m; }
+  return bez((lo + hi) / 2)[1];
+}
+const MIN_EDGE = 2, MIN_LEDGE = 1, MIN_BELOW = 0.6;
+
+// Validates options; returns list of problems (empty when fine).
+function checkOptions(o) {
+  const errs = [], { s1, s2 } = o.cut, floorZ = PLATE.recess.floorZ;
+  const sized = (s, label) => {
+    if (s.shape === 'circle') { if (!(s.d >= 2)) errs.push(`${label}: diameter must be at least 2 mm.`); return s.d >= 2; }
+    if (!(s.w >= 2 && s.h >= 2)) { errs.push(`${label}: width and length must be at least 2 mm.`); return false; }
+    if (!(s.rc >= 0)) { errs.push(`${label}: corner radius can't be negative.`); return false; }
+    return true;
+  };
+  const ok1 = sized(s1, 'Stage 1'), ok2 = sized(s2, 'Stage 2');
+  const same = ok1 && ok2 && sameShape(s1, s2);
+  if (!same && !(s1.depth >= 0.2 && s1.depth <= floorZ - MIN_BELOW + 1e-9)) errs.push(`Stage 1 depth must be 0.2–${(floorZ - MIN_BELOW).toFixed(1)} mm (at least ${MIN_BELOW} mm of ledge has to remain under it).`);
+  if (ok1) {
+    const pts = shapeLoopXY(s1, 256), fr = PLATE.recess.floorR - MIN_EDGE;
+    if (pts.some(([x, y]) => Math.hypot(x, y) > fr || (Math.abs(x) < 51.6 && Math.abs(y) > cutY(x) - MIN_EDGE)))
+      errs.push(`Stage 1 (${shapeName(s1)} mm) doesn't fit the recess floor with ${MIN_EDGE} mm to spare. The floor is Ø${(2 * PLATE.recess.floorR).toFixed(1)} mm, cut to ${(2 * cutY(0)).toFixed(1)} mm across between the curved edges.`);
+  }
+  if (ok1 && ok2 && !same && shapeLoopXY(s2, 256).some(([x, y]) => shapeSDF(s1, x, y) > -MIN_LEDGE + 1e-9))
+    errs.push(`Stage 2 must either match stage 1 exactly (one straight cut through the plate) or sit inside it with at least ${MIN_LEDGE} mm of ledge all round.`);
+  return errs;
+}
+function noticeOptions(o) {   // non-blocking notes
+  return [o.cut.s1, o.cut.s2].map((s, i) => s.shape === 'rect' && s.rc > Math.min(s.w, s.h) / 2 + 1e-9 ? `Stage ${i + 1}: corner radius is limited to ${(Math.min(s.w, s.h) / 2).toFixed(2)} mm (half the shorter side).` : null).filter(Boolean);
+}
+
+// Builds the plate as one triangle mesh. triangulate(contour, holes) is THREE.ShapeUtils.triangulateShape.
+// Returns { positions: Float32Array (xyz per vertex), indices: Uint32Array }.
+function buildPlate(o, triangulate, V2) {
+  const P = [], I = [];
+  const pt = (x, y, z) => { P.push(x, y, z); return P.length / 3 - 1; };
+  const tri = (a, b, c) => I.push(a, b, c);
+  const quad = (a, b, c, d) => { tri(a, b, c); tri(a, c, d); };
+  // wall between two loops with matching vertices; CCW loop -> normals face away from the region it encloses
+  const wall = (lo, hi, inward) => {
+    for (let i = 0, n = lo.length; i < n; i++) {
+      const j = (i + 1) % n;
+      if (inward) quad(lo[i], hi[i], hi[j], lo[j]); else quad(lo[i], lo[j], hi[j], hi[i]);
+    }
+  };
+  const xy = i => [P[3 * i], P[3 * i + 1]];
+  const cap = (outer, holes, up) => {
+    const all = outer.concat(...holes);
+    const faces = triangulate(outer.map(i => new V2(...xy(i))), holes.map(h => h.map(i => new V2(...xy(i)))));
+    for (const [a, b, c] of faces) {
+      const A = xy(all[a]), B = xy(all[b]), C = xy(all[c]);
+      const s = (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0]);
+      if ((s > 0) === up) tri(all[a], all[b], all[c]); else tri(all[a], all[c], all[b]);
+    }
+  };
+  const join = (...segs) => { const out = segs[0].slice(); for (const s of segs.slice(1)) out.push(...s.slice(1)); out.pop(); return out; };
+  const circle = (cx, cy, r, z, n) => { const out = []; for (let k = 0; k < n; k++) { const a = 2 * Math.PI * k / n; out.push(pt(cx + r * Math.cos(a), cy + r * Math.sin(a), z)); } return out; };
+  const range = (n, f) => Array.from({ length: n }, (_, k) => f(k));
+
+  // One level of the upper part (Z from the recess floor to the top face): crescents either side of the recess.
+  function level(z, withFloor) {
+    const tc = tAtRadius(outerR(z)), t0 = tAtRadius(recessR(z));
+    const [cx, cy] = bez(tc), [ix, iy] = bez(t0);
+    const phi = Math.atan2(cy, cx), th = Math.atan2(iy, ix), Rz = outerR(z), rz = recessR(z);
+    const KTR = pt(cx, cy, z), KBR = pt(cx, -cy, z), KTL = pt(-cx, cy, z), KBL = pt(-cx, -cy, z);
+    const ITR = pt(ix, iy, z), IBR = pt(ix, -iy, z), ITL = pt(-ix, iy, z), IBL = pt(-ix, -iy, z);
+    const inner = (n, f) => range(n - 1, k => f((k + 1) / n));
+    const S = {};
+    S.arcR = [KBR, ...inner(SEG.arc, u => { const a = -phi + 2 * phi * u; return pt(Rz * Math.cos(a), Rz * Math.sin(a), z); }), KTR];
+    S.arcL = [KTL, ...inner(SEG.arc, u => { const a = Math.PI - phi + 2 * phi * u; return pt(Rz * Math.cos(a), Rz * Math.sin(a), z); }), KBL];
+    const along = (ta, tb, sx, sy) => inner(SEG.cut, u => { const [x, y] = bez(ta + (tb - ta) * u); return pt(sx * x, sy * y, z); });
+    S.cutTR = [KTR, ...along(tc, t0, 1, 1), ITR];
+    S.cutBR = [IBR, ...along(t0, tc, 1, -1), KBR];
+    S.cutTL = [ITL, ...along(t0, tc, -1, 1), KTL];
+    S.cutBL = [KBL, ...along(tc, t0, -1, -1), IBL];
+    S.recR = [ITR, ...inner(SEG.rec, u => { const a = th - 2 * th * u; return pt(rz * Math.cos(a), rz * Math.sin(a), z); }), IBR];
+    S.recL = [IBL, ...inner(SEG.rec, u => { const a = Math.PI + th - 2 * th * u; return pt(rz * Math.cos(a), rz * Math.sin(a), z); }), ITL];
+    if (withFloor) {
+      S.cutTF = [ITR, ...inner(SEG.floorCut, u => { const [x, y] = bez(t0 + (1 - 2 * t0) * u); return pt(x, y, z); }), ITL];
+      S.cutBF = [IBL, ...inner(SEG.floorCut, u => { const [x, y] = bez(1 - t0 - (1 - 2 * t0) * u); return pt(x, -y, z); }), IBR];
+    }
+    return S;
+  }
+
+  const { T, ch } = PLATE, zf = PLATE.recess.floorZ;
+  const zs = [zf, 3.405, 3.415, 3.43, 3.45, 3.48, 3.52, 3.57, 3.63, 3.7, 3.8, 3.9, 4.0, 4.1, T];
+  const L = zs.map((z, k) => level(z, k === 0));
+  const F = L[0];
+  const crescR = S => join(S.arcR, S.cutTR, S.recR, S.cutBR, [S.arcR[0]]);
+  const crescL = S => join(S.arcL, S.cutBL, S.recL, S.cutTL, [S.arcL[0]]);
+  const outline = join(F.arcR, F.cutTR, F.cutTF, F.cutTL, F.arcL, F.cutBL, F.cutBF, F.cutBR, [F.arcR[0]]);
+  const floor = join(F.recR.slice().reverse(), F.cutTF, F.recL.slice().reverse(), F.cutBF, [F.recR[F.recR.length - 1]]);
+
+  // lower body: vertical outer wall from Z = ch to the floor level, bottom chamfer below it
+  const mid = outline.map(i => pt(P[3 * i], P[3 * i + 1], ch));
+  const n = outline.length;
+  const bottom = outline.map((i, k) => {
+    const a = xy(outline[(k - 1 + n) % n]), b = xy(i), c = xy(outline[(k + 1) % n]);
+    const e1 = [b[0] - a[0], b[1] - a[1]], e2 = [c[0] - b[0], c[1] - b[1]];
+    const l1 = Math.hypot(...e1), l2 = Math.hypot(...e2);
+    const n1 = [-e1[1] / l1, e1[0] / l1], n2 = [-e2[1] / l2, e2[0] / l2];   // inward normals of a CCW loop
+    let m = [n1[0] + n2[0], n1[1] + n2[1]]; const lm = Math.hypot(...m); m = [m[0] / lm, m[1] / lm];
+    const s = ch / (m[0] * n1[0] + m[1] * n1[1]);
+    return pt(b[0] + m[0] * s, b[1] + m[1] * s, 0);
+  });
+  wall(bottom, mid); wall(mid, outline);
+  for (let k = 0; k + 1 < L.length; k++) { wall(crescR(L[k]), crescR(L[k + 1])); wall(crescL(L[k]), crescL(L[k + 1])); }
+
+  // mounting holes, chamfered at both faces
+  const h = PLATE.holes, hc = [[h.x, h.y], [h.x, -h.y], [-h.x, h.y], [-h.x, -h.y]];
+  const holeTop = [], holeBot = [];
+  for (const [x, y] of hc) {
+    const rings = [[0, h.r + h.ch], [h.ch, h.r], [T - h.ch, h.r], [T, h.r + h.ch]].map(([z, r]) => circle(x, y, r, z, SEG.hole));
+    for (let k = 0; k < 3; k++) wall(rings[k], rings[k + 1], true);
+    holeBot.push(rings[0]); holeTop.push({ x, ring: rings[3] });
+  }
+
+  // two-stage cut-out: stage 1 pocket from the recess floor down to z1, stage 2 through the plate inside it
+  // (when stage 2 matches stage 1 it is one straight cut from the bottom face to the recess floor, with no ledge)
+  const { s1, s2 } = o.cut, z1 = zf - s1.depth;
+  const loop = (s, z) => shapeLoopXY(s, SEG.shape).map(([x, y]) => pt(x, y, z));
+  const b1 = loop(s1, zf), a2 = loop(s2, 0);
+  if (sameShape(s1, s2)) wall(a2, b1, true);
+  else {
+    const a1 = loop(s1, z1), b2 = loop(s2, z1);
+    wall(a1, b1, true); wall(a2, b2, true);
+    cap(a1, [b2], true);   // the ledge
+  }
+
+  cap(bottom, [...holeBot, a2], false);
+  cap(floor, [b1], true);
+  const top = L[L.length - 1];
+  cap(crescR(top), holeTop.filter(q => q.x > 0).map(q => q.ring), true);
+  cap(crescL(top), holeTop.filter(q => q.x < 0).map(q => q.ring), true);
+
+  // sealed magnet pockets: closed shells facing into the void
+  if (o.magnets) {
+    const m = PLATE.magnet;
+    for (const [x, y] of [[m.x, m.y], [m.x, -m.y], [-m.x, m.y], [-m.x, -m.y]]) {
+      const a = circle(x, y, m.d / 2, m.z0, SEG.mag), b = circle(x, y, m.d / 2, m.z0 + m.h, SEG.mag);
+      wall(a, b, true); cap(a, [], true); cap(b, [], false);
+    }
+  }
+  return { positions: new Float32Array(P), indices: new Uint32Array(I) };
+}
+
+function toSTL(mesh, name) {
+  const { positions: p, indices: ix } = mesh, nt = ix.length / 3;
+  const buf = new ArrayBuffer(84 + 50 * nt), dv = new DataView(buf);
+  const head = `${name} cosecloud.com`.slice(0, 80);
+  for (let i = 0; i < head.length; i++) dv.setUint8(i, head.charCodeAt(i) & 127);
+  dv.setUint32(80, nt, true);
+  for (let t = 0; t < nt; t++) {
+    const o = 84 + 50 * t, v = [0, 1, 2].map(k => [p[3 * ix[3 * t + k]], p[3 * ix[3 * t + k] + 1], p[3 * ix[3 * t + k] + 2]]);
+    const u = [v[1][0] - v[0][0], v[1][1] - v[0][1], v[1][2] - v[0][2]], w = [v[2][0] - v[0][0], v[2][1] - v[0][1], v[2][2] - v[0][2]];
+    let nx = u[1] * w[2] - u[2] * w[1], ny = u[2] * w[0] - u[0] * w[2], nz = u[0] * w[1] - u[1] * w[0];
+    const l = Math.hypot(nx, ny, nz) || 1; nx /= l; ny /= l; nz /= l;
+    [nx, ny, nz, ...v.flat()].forEach((x, k) => dv.setFloat32(o + 4 * k, x, true));
+  }
+  return buf;
+}
+
+// Mesh checks: every edge shared by exactly two triangles in opposite directions; enclosed volume (mm³).
+function meshStats(mesh) {
+  const { positions: p, indices: ix } = mesh, edges = new Map();
+  let vol = 0, bad = 0;
+  for (let t = 0; t < ix.length; t += 3) {
+    const a = ix[t], b = ix[t + 1], c = ix[t + 2];
+    for (const [u, v] of [[a, b], [b, c], [c, a]]) { const k = u + ',' + v; edges.set(k, (edges.get(k) || 0) + 1); }
+    const A = [p[3 * a], p[3 * a + 1], p[3 * a + 2]], B = [p[3 * b], p[3 * b + 1], p[3 * b + 2]], C = [p[3 * c], p[3 * c + 1], p[3 * c + 2]];
+    vol += (A[0] * (B[1] * C[2] - B[2] * C[1]) - A[1] * (B[0] * C[2] - B[2] * C[0]) + A[2] * (B[0] * C[1] - B[1] * C[0])) / 6;
+  }
+  for (const [k, cnt] of edges) { const [u, v] = k.split(','); if (cnt !== 1 || edges.get(v + ',' + u) !== 1) bad++; }
+  return { triangles: ix.length / 3, badEdges: bad, volume: vol, watertight: bad === 0 };
+}
+// --- geometry end ---
+
+
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const shapeOf = n => $('st' + n).querySelector('[aria-pressed="true"]').dataset.shape;
+const stageOpts = n => ({ shape: shapeOf(n), d: +$('d' + n).value, w: +$('w' + n).value, h: +$('h' + n).value, rc: +$('r' + n).value });
+const num = v => String(+(+v).toFixed(2));
+const stageTag = s => s.shape === 'circle' ? `circ${num(s.d)}` : `rect${num(s.w)}x${num(s.h)}` + (s.rc > 0 ? `r${num(Math.min(s.rc, s.w / 2, s.h / 2))}` : '');
+const settingsTag = o => (sameShape(o.cut.s1, o.cut.s2) ? `through-${stageTag(o.cut.s1)}` : `S1-${stageTag(o.cut.s1)}-d${num(o.cut.s1.depth)}_S2-${stageTag(o.cut.s2)}`) + `_${o.magnets ? 'mag' : 'nomag'}`;
+const fileName = o => { const p = ($('fname').value.trim() || 'sample-holder').replace(/\.stl$/i, '').replace(/[^\w.-]+/g, '-'); return `${p}_${settingsTag(o)}`; };
+const opts = () => { const s1 = { ...stageOpts(1), depth: +$('dp1').value }, s2 = $('same').checked ? (({ depth, ...s }) => s)(s1) : stageOpts(2);
+  return { magnets: $('mag').checked, cut: { s1, s2 } }; };
+
+// When stage 1 changes so that stage 2 no longer fits inside it with the ledge, shrink stage 2 (keeping its shape) until it does.
+const fitsInside = (s1, s2) => shapeLoopXY(s2, 256).every(([x, y]) => shapeSDF(s1, x, y) <= -MIN_LEDGE + 1e-9);
+const floor1 = v => Math.floor(v * 10 + 1e-9) / 10;
+function fitStage2() {
+  const { s1, s2 } = opts().cut;
+  if (fitsInside(s1, s2)) return false;
+  const ext = s1.shape === 'circle' ? [s1.d, s1.d] : [s1.w, s1.h];      // stage 1 extent in X and Y
+  let c = { ...s2 };
+  if (c.shape === 'circle') c.d = Math.min(c.d, floor1(Math.min(...ext) - 2 * MIN_LEDGE));
+  else { c.w = Math.min(c.w, floor1(ext[0] - 2 * MIN_LEDGE)); c.h = Math.min(c.h, floor1(ext[1] - 2 * MIN_LEDGE)); }
+  for (let k = 0; k < 400 && !fitsInside(s1, c); k++) {                  // still clipped at the corners: scale down in 0.1 mm steps
+    if (c.shape === 'circle') c.d = floor1(c.d - 0.1);
+    else { const f = (Math.max(c.w, c.h) - 0.1) / Math.max(c.w, c.h); c.w = floor1(c.w * f); c.h = floor1(c.h * f); }
+  }
+  if (c.shape === 'rect') c.rc = Math.min(c.rc, floor1(Math.min(c.w, c.h) / 2));
+  if (!fitsInside(s1, c) || Math.min(c.shape === 'circle' ? c.d : Math.min(c.w, c.h)) < 2) return false;   // can't fit; leave the error showing
+  $('d2').value = c.d; $('w2').value = c.w; $('h2').value = c.h; $('r2').value = c.rc;
+  return true;
+}
+let autoNote = '';
+
+// ---------- scene ----------
+const stage = $('stage');
+const fail = text => { $('msg').hidden = false; $('msg').textContent = text; };
+window.addEventListener('error', e => fail('The preview stopped with an error: ' + e.message));
+let renderer;
+try { renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); }
+catch (e) { fail('This browser could not start 3D graphics (WebGL), so the preview is unavailable. The STL download below still works.'); }
+if (renderer) { $('msg').hidden = true;
+renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+renderer.localClippingEnabled = true;
+stage.appendChild(renderer.domElement); }
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(32, 1, 1, 2000);
+camera.position.set(150, 230, 260);
+const controls = renderer ? new OrbitControls(camera, renderer.domElement) : null;
+if (controls) controls.enableDamping = true; if (controls) { controls.target.set(0, 0, 0); controls.minDistance = 80; controls.maxDistance = 900; }
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 1.6));
+const sun = new THREE.DirectionalLight(0xffffff, 1.6); sun.position.set(120, 260, 160); scene.add(sun);
+const fill = new THREE.DirectionalLight(0xffffff, 0.5); fill.position.set(-200, 80, -150); scene.add(fill);
+
+// section planes (three's z = −plate Y after the rotation below); each keeps the part behind the cut, facing the camera
+const clips = { centre: new THREE.Plane(new THREE.Vector3(0, 0, -1), 0), magnet: new THREE.Plane(new THREE.Vector3(0, 0, -1), PLATE.magnet.y) };
+const partMat = new THREE.MeshStandardMaterial({ color: css('--part'), roughness: .65, metalness: 0, flatShading: true, side: THREE.DoubleSide });
+const edgeMat = new THREE.LineBasicMaterial({ color: css('--edge'), transparent: true, opacity: .55 });
+const voidMat = new THREE.MeshStandardMaterial({ color: css('--void'), roughness: .6, transparent: true, opacity: .55, depthWrite: false });
+const group = new THREE.Group(); group.rotation.x = -Math.PI / 2; scene.add(group);   // plate Z (thickness) up
+
+let mesh = null;
+function rebuild() {
+  const o = opts(), errs = checkOptions(o), notes = noticeOptions(o);
+  const linked = $('same').checked;
+  for (const n of [1, 2]) { const sh = shapeOf(n); $('st' + n).querySelectorAll('[data-for]').forEach(f => f.hidden = (n === 2 && linked) || f.dataset.for !== sh); }
+  $('st2').querySelector('.seg').hidden = linked;
+  const same = sameShape(o.cut.s1, o.cut.s2); $('dp1').disabled = same; $('dp1').closest('.field').style.opacity = same ? .45 : 1;
+  $('errs').hidden = !errs.length; $('errs').innerHTML = errs.map(e => `<li>${e}</li>`).join('');
+  $('dl').disabled = errs.length > 0;
+  $('fullName').textContent = fileName(o) + '.stl';
+  const { s1, s2 } = o.cut, z1 = PLATE.recess.floorZ - s1.depth;
+  $('cutHint').innerHTML = (errs.length ? '' : same ? `One straight cut <b>${shapeName(s1)}</b> mm through the plate, no ledge. Stage 1 depth doesn't apply.` : `Stage 1 <b>${shapeName(s1)}</b> mm, floor at <b>Z ${z1.toFixed(2)}</b> (ledge ${z1.toFixed(2)} mm thick, ${(PLATE.T - z1).toFixed(2)} mm below the top face). Stage 2 <b>${shapeName(s2)}</b> mm through.`) + (autoNote ? `<br>${autoNote}` : '') + (notes.length ? `<br>${notes.join('<br>')}` : '');
+  $('magHint').innerHTML = o.magnets
+    ? `Four Ø${PLATE.magnet.d} × ${PLATE.magnet.h} mm pockets for 8 × 3 mm disc magnets, sealed inside the plate. Add a pause in your slicer at <b>Z ${(PLATE.magnet.z0 + PLATE.magnet.h).toFixed(2)} mm</b> (the first layer that covers them) and drop the magnets in.`
+    : 'The plate is solid; no print pause is needed.';
+  if (errs.length) return;
+  mesh = buildPlate(o, THREE.ShapeUtils.triangulateShape, THREE.Vector2);
+  const st = meshStats(mesh);
+  $('meshStat').innerHTML = `${st.triangles.toLocaleString()} triangles &middot; <span class="${st.watertight ? 'stat-ok' : 'stat-bad'}">${st.watertight ? 'watertight' : st.badEdges + ' open edges'}</span> &middot; ${(st.volume / 1000).toFixed(1)} cm³`;
+  group.clear();
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(mesh.positions, 3)); g.setIndex(new THREE.BufferAttribute(mesh.indices, 1));
+  const flat = g.toNonIndexed(); flat.computeVertexNormals();
+  group.add(new THREE.Mesh(flat, partMat));
+  group.add(new THREE.LineSegments(new THREE.EdgesGeometry(flat, 25), edgeMat));
+  if (o.magnets) {   // show the sealed pockets through the part
+    const m = PLATE.magnet;
+    for (const [x, y] of [[m.x, m.y], [m.x, -m.y], [-m.x, m.y], [-m.x, -m.y]]) {
+      const c = new THREE.Mesh(new THREE.CylinderGeometry(m.d / 2, m.d / 2, m.h, 48), voidMat);
+      c.rotation.x = Math.PI / 2; c.position.set(x, y, m.z0 + m.h / 2); c.renderOrder = 2; group.add(c);
+    }
+  }
+  setCut();
+}
+let section = 'off';
+function setCut() {
+  group.children.forEach(ch => { ch.material.clippingPlanes = section === 'off' ? [] : [clips[section]]; ch.material.needsUpdate = true; });
+}
+function resize() {
+  if (!renderer) return;
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage); resize();
+(function loop() { if (!renderer) return; controls.update(); renderer.render(scene, camera); requestAnimationFrame(loop); })();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { partMat.color.set(css('--part')); edgeMat.color.set(css('--edge')); voidMat.color.set(css('--void')); });
+
+const press = (group, btn) => group.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b === btn));
+let lastS1 = opts().cut.s1;
+const copyS1toS2 = s1 => { press($('st2').querySelector('.seg'), $('st2').querySelector(`[data-shape="${s1.shape}"]`)); $('d2').value = s1.d; $('w2').value = s1.w; $('h2').value = s1.h; $('r2').value = s1.rc; };
+const stage1Changed = () => {
+  const now = opts().cut.s1, s2 = stageOpts(2);
+  if (!$('same').checked && sameShape(lastS1, s2)) { copyS1toS2(now); autoNote = ''; }   // stage 2 was typed to match: keep matching
+  else autoNote = !$('same').checked && fitStage2() ? 'Stage 2 was made smaller to keep it inside stage 1 with a 1 mm ledge.' : '';
+  lastS1 = now; rebuild();
+};
+$('same').addEventListener('change', () => { if (!$('same').checked) copyS1toS2(opts().cut.s1); autoNote = ''; rebuild(); });
+const stage2Changed = () => { autoNote = ''; rebuild(); };
+$('st1').querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => { press(b.parentNode, b); stage1Changed(); }));
+$('st2').querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => { press(b.parentNode, b); autoNote = fitStage2() ? 'Stage 2 was sized to fit inside stage 1 with a 1 mm ledge.' : ''; rebuild(); }));
+for (const id of ['d1', 'w1', 'h1', 'r1']) $(id).addEventListener('input', stage1Changed);
+for (const id of ['d2', 'w2', 'h2', 'r2']) $(id).addEventListener('input', stage2Changed);
+for (const id of ['mag', 'fname', 'dp1']) $(id).addEventListener('input', rebuild);
+$('sect').querySelectorAll('button').forEach(b => b.addEventListener('click', () => { press($('sect'), b); section = b.dataset.s; setCut(); }));
+$('dl').addEventListener('click', () => {
+  if (!mesh) return;
+  const name = fileName(opts());
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([toSTL(mesh, name)], { type: 'model/stl' }));
+  a.download = name + '.stl'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+});
+rebuild();
+window.__holder = { buildPlate, meshStats, checkOptions, opts, rebuild };
+</script>
+</body>
+</html>
