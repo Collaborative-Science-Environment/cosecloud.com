@@ -21,7 +21,7 @@ PAGES = {
                            description="Two independent axes, 167 mm sample chamber, onboard camera, lighting and sensors, measured time-averaged gravity. Full specifications for the SciSpinner Max clinostat.",
                            current="product"),
     "tools": dict(title="Tools — COSE",
-                  description="Browser-based tools for SciSpinner data: g-level analysis of motion-sensor logs, a clinostat simulator, a run-setup tool that writes the instrument's configuration file, and a time-lapse to video converter. Everything runs locally; nothing is uploaded.",
+                  description="Browser-based tools for SciSpinner data: g-level analysis of motion-sensor logs, a clinostat simulator, a run-setup tool that writes the instrument's configuration file, a time-lapse to video converter and a sample holder generator that exports printable STL plates. Everything runs locally; nothing is uploaded.",
                   current="tools", out="tools/index.html"),
     "accessories": dict(title="Accessories and parts — COSE",
                         description="Spare Control Modules, extended cables, sample inserts and replacement parts for the SciSpinner Max, with US list prices.",
@@ -82,6 +82,7 @@ def main():
         "/tools/clinostat-simulator.html /tools/clinostat-simulator 301\n/simulator /tools/clinostat-simulator 301\n"
         "/tools/run-setup.html /tools/run-setup 301\n/setup /tools/run-setup 301\n"
         "/tools/timelapse-video.html /tools/timelapse-video 301\n/timelapse /tools/timelapse-video 301\n"
+        "/tools/sample-holder.html /tools/sample-holder 301\n/holder /tools/sample-holder 301\n"
         "/blog / 301\n/posts/index.html /posts/ 301\n/feed /posts/feed.xml 301\n"
         "/news/ /posts/ 301\n/news /posts/ 301\n/news/feed.xml /posts/feed.xml 301\n/news/* /posts/:splat 301\n"
         "/datasheet /downloads/SciSpinner_Max_Datasheet_2026-10.pdf 302\n")
